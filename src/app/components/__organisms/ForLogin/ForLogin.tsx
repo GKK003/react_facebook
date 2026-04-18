@@ -130,7 +130,7 @@ export default function ForLogin() {
             ))}
           </div>
 
-          <div className="mt-3">Meta © 2026</div>
+          <div className="mt-3">Meta © 2026.</div>
         </div>
       </footer>
     </div>

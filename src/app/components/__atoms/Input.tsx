@@ -1,0 +1,36 @@
+"use client";
+
+type Props = {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  type?: string;
+  error?: string;
+};
+
+export default function Input({
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  error,
+}: Props) {
+  return (
+    <div className="w-full">
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`w-full h-[52px] px-4 rounded-xl border outline-none
+          ${
+            error
+              ? "border-red-500 focus:ring-2 focus:ring-red-200"
+              : "border-[#CED0D4] focus:ring-2 focus:ring-blue-200"
+          }`}
+      />
+
+      {error && <p className="text-red-500 text-[13px] mt-1">❗ {error}</p>}
+    </div>
+  );
+}

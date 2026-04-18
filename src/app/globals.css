@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Facebook Sans";
+  src: url("/fonts/FacebookSans-Regular.woff") format("woff");
+  font-style: normal;
+}
+
+body {
+  font-family: "Facebook Sans";
+}
+
 @theme {
   --breakpoint-*: initial;
 }

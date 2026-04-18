@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme {
+  --breakpoint-*: initial;
+}
+
+@custom-variant 2xl (@media (max-width: 1535px));
+@custom-variant xl (@media (max-width: 1359px));
+@custom-variant lg (@media (max-width: 1100px));
+@custom-variant md (@media (max-width: 767px));
+@custom-variant sm (@media (max-width: 585px));
+@custom-variant gg (@media (max-width: 450px));

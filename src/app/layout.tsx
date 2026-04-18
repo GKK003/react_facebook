@@ -30,7 +30,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {children}
 
-        <footer className="border-t border-[#DADDE1] py-6 px-50">
+        <footer className="border-t border-[#DADDE1] py-6 px-50 lg:px30 sm:px-10">
           <div className="max-w-[980px] mx-auto text-[#606770] text-xs">
             <div className="flex flex-wrap gap-3 mb-3">
               {[

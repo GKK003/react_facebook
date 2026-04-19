@@ -22,7 +22,7 @@ export default function Input({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`w-full h-[52px] px-4 rounded-xl border outline-none
+        className={`w-full h-[52px] px-4 rounded-xl border outline-none font-extrabold
           ${
             error
               ? "border-red-500 focus:ring-2 focus:ring-red-200"

@@ -22,6 +22,10 @@ export default function GenderField({ value, onChange, error }: Props) {
         onChange={onChange}
         placeholder="Select gender"
         error={error}
+        open={false}
+        setOpen={function (): void {
+          throw new Error("Function not implemented.");
+        }}
       />
 
       {error && <p className="text-red-500 text-[13px] mt-1">❗ {error}</p>}

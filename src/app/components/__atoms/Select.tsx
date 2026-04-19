@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, useEffect } from "react";
+
 type Option = {
   label: string;
   value: string;
@@ -24,23 +26,33 @@ export default function Select({
   open,
   setOpen,
 }: Props) {
+  const ref = useRef<HTMLDivElement>(null);
   const selected = options.find((o) => o.value === value);
 
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        if (open) setOpen();
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [open]);
+
   return (
-    <div className="relative w-full">
+    <div ref={ref} className="relative w-full">
       <div
         onClick={setOpen}
         className={`h-[52px] px-4 flex items-center justify-between rounded-xl border cursor-pointer
-bg-white text-[#1c1e21]
-transition-all duration-150
-${error ? "border-red-500" : "border-[#ccd0d5] hover:border-[#1c1e21]"}
-${open ? " border-[#1877F2] ring-2 ring-[#e7f3ff]" : ""}
-`}
+          bg-white text-[#1c1e21] transition-all duration-150
+          ${error ? "border-red-500" : "border-[#ccd0d5] hover:border-[#1c1e21]"}
+          ${open ? "border-[#1877F2] ring-2 ring-[#e7f3ff]" : ""}
+        `}
       >
         <span className={!value ? "text-gray-400" : ""}>
           {selected ? selected.label : placeholder}
         </span>
-
         <span
           className={`${error ? "text-red-500" : "text-black"} rotate-[-90deg]`}
         >

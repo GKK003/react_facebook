@@ -27,6 +27,8 @@ type Errors = {
   gender: string;
 };
 
+type OpenSelect = "month" | "day" | "year" | "gender" | null;
+
 export default function RegisterForm() {
   const router = useRouter();
 
@@ -34,31 +36,13 @@ export default function RegisterForm() {
   const [lastName, setLastNameState] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const nameRegex = /^[A-Za-z]{2,30}$/;
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
-
-  const setFirstName = (value: string) => {
-    if (/^[A-Za-z]*$/.test(value)) {
-      setFirstNameState(value);
-    }
-  };
-
-  const setLastName = (value: string) => {
-    if (/^[A-Za-z]*$/.test(value)) {
-      setLastNameState(value);
-    }
-  };
-
   const [birthday, setBirthday] = useState<Birthday>({
     day: "",
     month: "",
     year: "",
   });
-
   const [gender, setGender] = useState("");
-
+  const [openSelect, setOpenSelect] = useState<OpenSelect>(null);
   const [errors, setErrors] = useState<Errors>({
     firstName: "",
     lastName: "",
@@ -67,6 +51,18 @@ export default function RegisterForm() {
     birthday: "",
     gender: "",
   });
+
+  const nameRegex = /^[A-Za-z]{2,30}$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+  const setFirstName = (value: string) => {
+    if (/^[A-Za-z]*$/.test(value)) setFirstNameState(value);
+  };
+
+  const setLastName = (value: string) => {
+    if (/^[A-Za-z]*$/.test(value)) setLastNameState(value);
+  };
 
   const validate = () => {
     const newErrors: Errors = {
@@ -78,41 +74,26 @@ export default function RegisterForm() {
       gender: "",
     };
 
-    if (!firstName.trim()) {
+    if (!firstName.trim() || !nameRegex.test(firstName))
       newErrors.firstName = "What's your first name?";
-    } else if (!nameRegex.test(firstName)) {
-      newErrors.firstName = "What's your first name?";
-    }
 
-    if (!lastName.trim()) {
+    if (!lastName.trim() || !nameRegex.test(lastName))
       newErrors.lastName = "What's your last name?";
-    } else if (!nameRegex.test(lastName)) {
-      newErrors.lastName = "What's your last name?";
-    }
 
-    if (!email.trim()) {
+    if (!email.trim() || !emailRegex.test(email))
       newErrors.email = "Please enter a valid mobile number or email address.";
-    } else if (!emailRegex.test(email)) {
-      newErrors.email = "Please enter a valid mobile number or email address.";
-    }
 
-    if (!password) {
+    if (!password || !passwordRegex.test(password))
       newErrors.password =
         "Enter a combination of at least six numbers, letters and punctuation marks.";
-    } else if (!passwordRegex.test(password)) {
-      newErrors.password =
-        "Enter a combination of at least six numbers, letters and punctuation marks.";
-    }
 
-    if (!birthday.day || !birthday.month || !birthday.year) {
+    if (!birthday.day || !birthday.month || !birthday.year)
       newErrors.birthday =
         "Select your birthday. You can change who can see this later.";
-    }
 
-    if (!gender) {
+    if (!gender)
       newErrors.gender =
         "Please choose a gender. You can change who can see this later.";
-    }
 
     setErrors(newErrors);
     return Object.values(newErrors).every((e) => !e);
@@ -137,8 +118,7 @@ export default function RegisterForm() {
         createdAt: new Date(),
       });
 
-      alert("Account created");
-      router.push("/");
+      router.push("/home");
     } catch (error: any) {
       alert(error.message);
     }
@@ -151,19 +131,24 @@ export default function RegisterForm() {
         lastName={lastName}
         setFirstName={setFirstName}
         setLastName={setLastName}
-        errors={{
-          firstName: errors.firstName,
-          lastName: errors.lastName,
-        }}
+        errors={{ firstName: errors.firstName, lastName: errors.lastName }}
       />
 
       <BirthdayFields
         value={birthday}
         onChange={setBirthday}
         error={errors.birthday}
+        openSelect={openSelect}
+        setOpenSelect={setOpenSelect}
       />
 
-      <GenderField value={gender} onChange={setGender} error={errors.gender} />
+      <GenderField
+        value={gender}
+        onChange={setGender}
+        error={errors.gender}
+        openSelect={openSelect}
+        setOpenSelect={setOpenSelect}
+      />
 
       <Input
         placeholder="Mobile number or email"
@@ -173,7 +158,7 @@ export default function RegisterForm() {
       />
 
       <p className="text-[13px] text-[#1c1e21]">
-        You may receive notifications from us.
+        You may receive notifications from us.{" "}
         <span className="text-[#1877F2] cursor-pointer">
           Learn why we ask for your contact information
         </span>
@@ -189,21 +174,21 @@ export default function RegisterForm() {
 
       <p className="text-[13px] text-[#1c1e21]">
         People who use our service may have uploaded your contact information to
-        Facebook.
+        Facebook.{" "}
         <span className="text-[#1877F2] cursor-pointer">Learn more.</span>
       </p>
 
       <p className="text-[13px] text-[#1c1e21]">
-        By tapping Submit, you agree to create an account and to Facebook's
-        <span className="text-[#1877F2] cursor-pointer">Terms</span>,
-        <span className="text-[#1877F2] cursor-pointer">Privacy Policy</span>
-        and
+        By tapping Submit, you agree to create an account and to Facebook's{" "}
+        <span className="text-[#1877F2] cursor-pointer">Terms</span>,{" "}
+        <span className="text-[#1877F2] cursor-pointer">Privacy Policy</span>{" "}
+        and{" "}
         <span className="text-[#1877F2] cursor-pointer">Cookies Policy</span>.
       </p>
 
       <p className="text-[13px] text-[#1c1e21]">
-        The
-        <span className="text-[#1877F2] cursor-pointer">Privacy Policy</span>
+        The{" "}
+        <span className="text-[#1877F2] cursor-pointer">Privacy Policy</span>{" "}
         describes the ways we can use the information we collect when you create
         an account. For example, we use this information to provide, personalize
         and improve our products, including ads.

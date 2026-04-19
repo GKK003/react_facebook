@@ -18,10 +18,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Facebook",
-  description: "Facebook Login Page",
-};
+// export const metadata: Metadata = {
+//   title: "Facebook",
+//   description: "Facebook Login Page",
+// };
 
 export default function RootLayout({
   children,

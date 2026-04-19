@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Select from "../__atoms/Select";
 
 type Birthday = {
@@ -15,6 +16,9 @@ type Props = {
 };
 
 export default function BirthdayFields({ value, onChange, error }: Props) {
+  const [openSelect, setOpenSelect] = useState<"month" | "day" | "year" | null>(
+    null,
+  );
   const months = [
     { label: "January", value: "1" },
     { label: "February", value: "2" },
@@ -41,6 +45,8 @@ export default function BirthdayFields({ value, onChange, error }: Props) {
           onChange={(v) => onChange({ ...value, month: v })}
           placeholder="Month"
           error={error}
+          open={openSelect === "month"}
+          setOpen={() => setOpenSelect(openSelect === "month" ? null : "month")}
         />
 
         <Select
@@ -52,6 +58,8 @@ export default function BirthdayFields({ value, onChange, error }: Props) {
           onChange={(v) => onChange({ ...value, day: v })}
           placeholder="Day"
           error={error}
+          open={openSelect === "day"}
+          setOpen={() => setOpenSelect(openSelect === "day" ? null : "day")}
         />
 
         <Select
@@ -63,6 +71,8 @@ export default function BirthdayFields({ value, onChange, error }: Props) {
           onChange={(v) => onChange({ ...value, year: v })}
           placeholder="Year"
           error={error}
+          open={openSelect === "year"}
+          setOpen={() => setOpenSelect(openSelect === "year" ? null : "year")}
         />
       </div>
 

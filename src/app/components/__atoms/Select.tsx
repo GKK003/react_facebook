@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 type Option = {
   label: string;
   value: string;
@@ -12,7 +10,9 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
-  error?: string; // ✅ STRING
+  error?: string;
+  open: boolean;
+  setOpen: () => void;
 };
 
 export default function Select({
@@ -21,22 +21,31 @@ export default function Select({
   onChange,
   placeholder,
   error,
+  open,
+  setOpen,
 }: Props) {
-  const [open, setOpen] = useState(false);
-
   const selected = options.find((o) => o.value === value);
 
   return (
     <div className="relative w-full">
       <div
-        onClick={() => setOpen(!open)}
+        onClick={setOpen}
         className={`h-[52px] px-4 flex items-center justify-between rounded-xl border cursor-pointer
-          ${error ? "border-red-500" : "border-[#CED0D4]"}`}
+bg-white text-[#1c1e21]
+transition-all duration-150
+${error ? "border-red-500" : "border-[#ccd0d5] hover:border-[#1c1e21]"}
+${open ? " border-[#1877F2] ring-2 ring-[#e7f3ff]" : ""}
+`}
       >
         <span className={!value ? "text-gray-400" : ""}>
           {selected ? selected.label : placeholder}
         </span>
-        <span>⌄</span>
+
+        <span
+          className={`${error ? "text-red-500" : "text-black"} rotate-[-90deg]`}
+        >
+          {"<"}
+        </span>
       </div>
 
       {open && (
@@ -46,7 +55,7 @@ export default function Select({
               key={opt.value}
               onClick={() => {
                 onChange(opt.value);
-                setOpen(false);
+                setOpen();
               }}
               className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
             >

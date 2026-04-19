@@ -1,21 +1,27 @@
-"use client";
-
 import RegisterForm from "@/app/components/__organisms/Registration";
 import Image from "next/image";
 import Link from "next/link";
 import Meta from "@/assets/images/Metalogo.png";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Facebook",
+  description: "Facebook Registration Page",
+};
 
 export default function RegisterPage() {
   return (
     <div className="min-h-screen  flex justify-center">
       <div className="w-full max-w-[600px] flex flex-col">
         <div className="px-4 pt-6">
-          <div className="flex items-center gap-3 mb-5">
+          <div className="flex flex-col justify-center items-start gap-3 mb-5">
             <Link href="/">
-              <span className="text-[22px] cursor-pointer">←</span>
+              <p className="text-[25px] cursor-pointer w-[40px] h-[40px] rounded-full hover:bg-gray-100 flex justify-center items-center">
+                &lt;
+              </p>
             </Link>
 
-            <Image src={Meta} alt="Meta" width={40} height={20} />
+            <Image src={Meta} alt="Meta" width={60} height={40} />
           </div>
 
           <h1 className="text-[26px] font-semibold leading-7">

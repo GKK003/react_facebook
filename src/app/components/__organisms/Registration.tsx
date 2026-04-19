@@ -10,6 +10,7 @@ import { auth, db } from "@/firebase/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Birthday = {
   day: string;
@@ -27,10 +28,28 @@ type Errors = {
 };
 
 export default function RegisterForm() {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const router = useRouter();
+
+  const [firstName, setFirstNameState] = useState("");
+  const [lastName, setLastNameState] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const nameRegex = /^[A-Za-z]{2,30}$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+  const setFirstName = (value: string) => {
+    if (/^[A-Za-z]*$/.test(value)) {
+      setFirstNameState(value);
+    }
+  };
+
+  const setLastName = (value: string) => {
+    if (/^[A-Za-z]*$/.test(value)) {
+      setLastNameState(value);
+    }
+  };
 
   const [birthday, setBirthday] = useState<Birthday>({
     day: "",
@@ -59,19 +78,41 @@ export default function RegisterForm() {
       gender: "",
     };
 
-    if (!firstName.trim()) newErrors.firstName = "What's your first name?";
-    if (!lastName.trim()) newErrors.lastName = "What's your last name?";
-    if (!email)
+    if (!firstName.trim()) {
+      newErrors.firstName = "What's your first name?";
+    } else if (!nameRegex.test(firstName)) {
+      newErrors.firstName = "What's your first name?";
+    }
+
+    if (!lastName.trim()) {
+      newErrors.lastName = "What's your last name?";
+    } else if (!nameRegex.test(lastName)) {
+      newErrors.lastName = "What's your last name?";
+    }
+
+    if (!email.trim()) {
       newErrors.email = "Please enter a valid mobile number or email address.";
-    if (!password)
+    } else if (!emailRegex.test(email)) {
+      newErrors.email = "Please enter a valid mobile number or email address.";
+    }
+
+    if (!password) {
       newErrors.password =
         "Enter a combination of at least six numbers, letters and punctuation marks.";
-    if (!birthday.day || !birthday.month || !birthday.year)
+    } else if (!passwordRegex.test(password)) {
+      newErrors.password =
+        "Enter a combination of at least six numbers, letters and punctuation marks.";
+    }
+
+    if (!birthday.day || !birthday.month || !birthday.year) {
       newErrors.birthday =
         "Select your birthday. You can change who can see this later.";
-    if (!gender)
+    }
+
+    if (!gender) {
       newErrors.gender =
         "Please choose a gender. You can change who can see this later.";
+    }
 
     setErrors(newErrors);
     return Object.values(newErrors).every((e) => !e);
@@ -80,22 +121,27 @@ export default function RegisterForm() {
   const handleRegister = async () => {
     if (!validate()) return;
 
-    const userCred = await createUserWithEmailAndPassword(
-      auth,
-      email,
-      password,
-    );
+    try {
+      const userCred = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
 
-    await setDoc(doc(db, "users", userCred.user.uid), {
-      firstName,
-      lastName,
-      email,
-      birthday,
-      gender,
-      createdAt: new Date(),
-    });
+      await setDoc(doc(db, "users", userCred.user.uid), {
+        firstName,
+        lastName,
+        email,
+        birthday,
+        gender,
+        createdAt: new Date(),
+      });
 
-    alert("Account created ");
+      alert("Account created");
+      router.push("/");
+    } catch (error: any) {
+      alert(error.message);
+    }
   };
 
   return (
@@ -165,24 +211,14 @@ export default function RegisterForm() {
 
       <button
         onClick={handleRegister}
-        className="w-full h-[44px] bg-[#1877F2] text-white rounded-full font-semibold"
+        className="w-full h-[40px] bg-[#1877F2] text-white rounded-full cursor-pointer transition-all duration-200 hover:bg-[#166FE5] active:scale-[0.98]"
       >
         Submit
       </button>
 
       <Link
         href="/"
-        className="
-        w-full h-[44px]
-        border border-[#ccd0d5]
-        rounded-full
-        text-[#1c1e21]
-        bg-white
-        transition duration-200
-        hover:bg-[#f0f2f5]
-        active:bg-[#e4e6eb]
-        flex justify-center items-center
-      "
+        className="w-full h-[44px] border border-[#ccd0d5] rounded-full text-[#1c1e21] bg-white transition duration-200 hover:bg-[#f0f2f5] active:bg-[#e4e6eb] flex justify-center items-center"
       >
         I already have an account
       </Link>

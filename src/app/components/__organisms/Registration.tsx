@@ -118,7 +118,7 @@ export default function RegisterForm() {
         createdAt: new Date(),
       });
 
-      router.push("/home");
+      router.push("/");
     } catch (error: any) {
       alert(error.message);
     }

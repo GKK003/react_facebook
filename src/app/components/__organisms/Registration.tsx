@@ -119,6 +119,12 @@ export default function RegisterForm() {
       });
 
       router.push("/");
+      setFirstNameState("");
+      setLastNameState("");
+      setEmail("");
+      setPassword("");
+      setBirthday({ day: "", month: "", year: "" });
+      setGender("");
     } catch (error: any) {
       alert(error.message);
     }

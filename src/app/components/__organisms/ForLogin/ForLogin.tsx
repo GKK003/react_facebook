@@ -85,6 +85,8 @@ export default function ForLogin() {
 
       localStorage.setItem("profiles", JSON.stringify(updated));
       setProfiles(updated);
+      setEmail("");
+      setPassword("");
 
       alert("Login successful");
     } catch (error: any) {

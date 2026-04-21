@@ -1,5 +1,3 @@
-"use client";
-
 type ButtonProps = {
   text: string;
   onClick: () => void;

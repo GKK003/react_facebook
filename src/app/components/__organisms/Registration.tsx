@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import NameFields from "../__molecules/NameFields";
 import BirthdayFields from "../__molecules/BirthdayFields";
 import GenderField from "../__molecules/GenderField";
@@ -11,89 +10,61 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
-type Birthday = {
-  day: string;
-  month: string;
-  year: string;
-};
-
-type Errors = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  birthday: string;
-  gender: string;
-};
-
-type OpenSelect = "month" | "day" | "year" | "gender" | null;
+import { useRegisterStore } from "@/store/useRegisterStore";
 
 export default function RegisterForm() {
   const router = useRouter();
 
-  const [firstName, setFirstNameState] = useState("");
-  const [lastName, setLastNameState] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [birthday, setBirthday] = useState<Birthday>({
-    day: "",
-    month: "",
-    year: "",
-  });
-  const [gender, setGender] = useState("");
-  const [openSelect, setOpenSelect] = useState<OpenSelect>(null);
-  const [errors, setErrors] = useState<Errors>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    birthday: "",
-    gender: "",
-  });
+  const {
+    firstName,
+    lastName,
+    email,
+    password,
+    birthday,
+    gender,
+    openSelect,
+    errors,
+    setFirstName,
+    setLastName,
+    setEmail,
+    setPassword,
+    setBirthday,
+    setGender,
+    setOpenSelect,
+    setErrors,
+    resetForm,
+  } = useRegisterStore();
 
   const nameRegex = /^[A-Za-z]{2,30}$/;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
 
-  const setFirstName = (value: string) => {
-    if (/^[A-Za-z]*$/.test(value)) setFirstNameState(value);
-  };
-
-  const setLastName = (value: string) => {
-    if (/^[A-Za-z]*$/.test(value)) setLastNameState(value);
-  };
-
   const validate = () => {
-    const newErrors: Errors = {
-      firstName: "",
-      lastName: "",
-      email: "",
-      password: "",
-      birthday: "",
-      gender: "",
+    const newErrors = {
+      firstName:
+        !firstName.trim() || !nameRegex.test(firstName)
+          ? "What's your first name?"
+          : "",
+      lastName:
+        !lastName.trim() || !nameRegex.test(lastName)
+          ? "What's your last name?"
+          : "",
+      email:
+        !email.trim() || !emailRegex.test(email)
+          ? "Please enter a valid mobile number or email address."
+          : "",
+      password:
+        !password || !passwordRegex.test(password)
+          ? "Enter a combination of at least six numbers, letters and punctuation marks."
+          : "",
+      birthday:
+        !birthday.day || !birthday.month || !birthday.year
+          ? "Select your birthday. You can change who can see this later."
+          : "",
+      gender: !gender
+        ? "Please choose a gender. You can change who can see this later."
+        : "",
     };
-
-    if (!firstName.trim() || !nameRegex.test(firstName))
-      newErrors.firstName = "What's your first name?";
-
-    if (!lastName.trim() || !nameRegex.test(lastName))
-      newErrors.lastName = "What's your last name?";
-
-    if (!email.trim() || !emailRegex.test(email))
-      newErrors.email = "Please enter a valid mobile number or email address.";
-
-    if (!password || !passwordRegex.test(password))
-      newErrors.password =
-        "Enter a combination of at least six numbers, letters and punctuation marks.";
-
-    if (!birthday.day || !birthday.month || !birthday.year)
-      newErrors.birthday =
-        "Select your birthday. You can change who can see this later.";
-
-    if (!gender)
-      newErrors.gender =
-        "Please choose a gender. You can change who can see this later.";
 
     setErrors(newErrors);
     return Object.values(newErrors).every((e) => !e);
@@ -118,13 +89,8 @@ export default function RegisterForm() {
         createdAt: new Date(),
       });
 
+      resetForm();
       router.push("/");
-      setFirstNameState("");
-      setLastNameState("");
-      setEmail("");
-      setPassword("");
-      setBirthday({ day: "", month: "", year: "" });
-      setGender("");
     } catch (error: any) {
       alert(error.message);
     }

@@ -1,23 +1,32 @@
 "use client";
 
 import { useRef, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { loginSchema } from "@/schemas/loginSchema";
 import Image from "next/image";
 import NoProfile from "@/assets/images/noprofile.webp";
 import { useAuthStore } from "@/store/useAuthStore";
 
+type PopupFormValues = {
+  password: string;
+};
+
 type Props = {
-  onLogin: () => void;
+  onLogin: (email: string, password: string) => void;
 };
 
 export default function ProfilePopup({ onLogin }: Props) {
-  const {
-    selectedProfile,
-    popupPassword,
-    setPopupPassword,
-    closePopup,
-    popup,
-  } = useAuthStore();
+  const { selectedProfile, closePopup, popup } = useAuthStore();
   const popupRef = useRef<HTMLDivElement>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<PopupFormValues>({
+    resolver: yupResolver(loginSchema.pick(["password"])),
+  });
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -31,6 +40,10 @@ export default function ProfilePopup({ onLogin }: Props) {
   }, [popup]);
 
   if (!selectedProfile) return null;
+
+  const onSubmit = (data: PopupFormValues) => {
+    onLogin(selectedProfile.email, data.password);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -58,16 +71,27 @@ export default function ProfilePopup({ onLogin }: Props) {
             {selectedProfile.name}
           </h2>
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={popupPassword}
-            onChange={(e) => setPopupPassword(e.target.value)}
-            className="w-full h-[50px] px-4 rounded-xl border border-[#ccd0d5] outline-none hover:border-black focus:border-[#1877F2] focus:ring-2 focus:ring-[#e7f3ff] mb-4"
-          />
+          <div className="w-full mb-4">
+            <input
+              type="password"
+              placeholder="Password"
+              {...register("password")}
+              className={`w-full h-[50px] px-4 rounded-xl border outline-none transition-all duration-150
+                ${
+                  errors.password
+                    ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                    : "border-[#ccd0d5] hover:border-black focus:border-[#1877F2] focus:ring-2 focus:ring-[#e7f3ff]"
+                }`}
+            />
+            {errors.password && (
+              <p className="text-red-500 text-[13px] mt-1">
+                ❗ {errors.password.message}
+              </p>
+            )}
+          </div>
 
           <button
-            onClick={onLogin}
+            onClick={handleSubmit(onSubmit)}
             className="w-full h-[45px] bg-[#1877F2] text-white rounded-full hover:bg-[#166FE5] active:scale-[0.98] transition cursor-pointer"
           >
             Log in

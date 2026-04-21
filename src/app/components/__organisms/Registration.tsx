@@ -1,5 +1,9 @@
 "use client";
 
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { registerSchema, RegisterFormValues } from "@/schemas/registerSchema";
+
 import NameFields from "../__molecules/NameFields";
 import BirthdayFields from "../__molecules/BirthdayFields";
 import GenderField from "../__molecules/GenderField";
@@ -14,82 +18,42 @@ import { useRegisterStore } from "@/store/useRegisterStore";
 
 export default function RegisterForm() {
   const router = useRouter();
+  const { openSelect, setOpenSelect } = useRegisterStore();
 
   const {
-    firstName,
-    lastName,
-    email,
-    password,
-    birthday,
-    gender,
-    openSelect,
-    errors,
-    setFirstName,
-    setLastName,
-    setEmail,
-    setPassword,
-    setBirthday,
-    setGender,
-    setOpenSelect,
-    setErrors,
-    resetForm,
-  } = useRegisterStore();
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormValues>({
+    resolver: yupResolver(registerSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      birthday: { day: "", month: "", year: "" },
+      gender: "",
+    },
+  });
 
-  const nameRegex = /^[A-Za-z]{2,30}$/;
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
-
-  const validate = () => {
-    const newErrors = {
-      firstName:
-        !firstName.trim() || !nameRegex.test(firstName)
-          ? "What's your first name?"
-          : "",
-      lastName:
-        !lastName.trim() || !nameRegex.test(lastName)
-          ? "What's your last name?"
-          : "",
-      email:
-        !email.trim() || !emailRegex.test(email)
-          ? "Please enter a valid mobile number or email address."
-          : "",
-      password:
-        !password || !passwordRegex.test(password)
-          ? "Enter a combination of at least six numbers, letters and punctuation marks."
-          : "",
-      birthday:
-        !birthday.day || !birthday.month || !birthday.year
-          ? "Select your birthday. You can change who can see this later."
-          : "",
-      gender: !gender
-        ? "Please choose a gender. You can change who can see this later."
-        : "",
-    };
-
-    setErrors(newErrors);
-    return Object.values(newErrors).every((e) => !e);
-  };
-
-  const handleRegister = async () => {
-    if (!validate()) return;
-
+  const onSubmit = async (data: RegisterFormValues) => {
     try {
       const userCred = await createUserWithEmailAndPassword(
         auth,
-        email,
-        password,
+        data.email,
+        data.password,
       );
 
       await setDoc(doc(db, "users", userCred.user.uid), {
-        firstName,
-        lastName,
-        email,
-        birthday,
-        gender,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        birthday: data.birthday,
+        gender: data.gender,
         createdAt: new Date(),
       });
 
-      resetForm();
       router.push("/");
     } catch (error: any) {
       alert(error.message);
@@ -99,34 +63,45 @@ export default function RegisterForm() {
   return (
     <div className="w-full flex flex-col gap-4 mb-5">
       <NameFields
-        firstName={firstName}
-        lastName={lastName}
-        setFirstName={setFirstName}
-        setLastName={setLastName}
-        errors={{ firstName: errors.firstName, lastName: errors.lastName }}
+        register={register}
+        errors={{
+          firstName: errors.firstName?.message,
+          lastName: errors.lastName?.message,
+        }}
       />
 
-      <BirthdayFields
-        value={birthday}
-        onChange={setBirthday}
-        error={errors.birthday}
-        openSelect={openSelect}
-        setOpenSelect={setOpenSelect}
+      <Controller
+        name="birthday"
+        control={control}
+        render={({ field }) => (
+          <BirthdayFields
+            value={field.value}
+            onChange={field.onChange}
+            error={errors.birthday?.message}
+            openSelect={openSelect}
+            setOpenSelect={setOpenSelect}
+          />
+        )}
       />
 
-      <GenderField
-        value={gender}
-        onChange={setGender}
-        error={errors.gender}
-        openSelect={openSelect}
-        setOpenSelect={setOpenSelect}
+      <Controller
+        name="gender"
+        control={control}
+        render={({ field }) => (
+          <GenderField
+            value={field.value}
+            onChange={field.onChange}
+            error={errors.gender?.message}
+            openSelect={openSelect}
+            setOpenSelect={setOpenSelect}
+          />
+        )}
       />
 
       <Input
         placeholder="Mobile number or email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        error={errors.email}
+        error={errors.email?.message}
+        {...register("email")}
       />
 
       <p className="text-[13px] text-[#1c1e21]">
@@ -139,9 +114,8 @@ export default function RegisterForm() {
       <Input
         type="password"
         placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        error={errors.password}
+        error={errors.password?.message}
+        {...register("password")}
       />
 
       <p className="text-[13px] text-[#1c1e21]">
@@ -167,7 +141,7 @@ export default function RegisterForm() {
       </p>
 
       <button
-        onClick={handleRegister}
+        onClick={handleSubmit(onSubmit)}
         className="w-full h-[40px] bg-[#1877F2] text-white rounded-full cursor-pointer transition-all duration-200 hover:bg-[#166FE5] active:scale-[0.98]"
       >
         Submit

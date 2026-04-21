@@ -12,21 +12,19 @@ import Collage from "@/assets/images/loginimage.webp";
 import Meta from "@/assets/images/Metalogo.png";
 
 import { useAuthStore } from "@/store/useAuthStore";
+import { LoginFormValues } from "@/schemas/loginSchema";
+
 import LoginForm from "../../__molecules/LoginForm";
 import ProfileList from "../../__molecules/ProfileList";
 import ProfilePopup from "../../__molecules/ProfilePopup";
 
 export default function ForLogin() {
   const {
-    email,
-    password,
     showProfiles,
     popup,
     selectedProfile,
-    popupPassword,
     loadProfiles,
     saveProfile,
-    resetLoginForm,
     closePopup,
   } = useAuthStore();
 
@@ -34,12 +32,12 @@ export default function ForLogin() {
     loadProfiles();
   }, []);
 
-  const handleLogin = async () => {
+  const handleLogin = async (data: LoginFormValues) => {
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        email,
-        password,
+        data.email,
+        data.password,
       );
       const user = userCredential.user;
 
@@ -48,29 +46,21 @@ export default function ForLogin() {
 
       let fullName = user.email || "";
       if (docSnap.exists()) {
-        const data = docSnap.data();
+        const d = docSnap.data();
         fullName =
-          `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
-          user.email ||
-          "";
+          `${d.firstName || ""} ${d.lastName || ""}`.trim() || user.email || "";
       }
 
       saveProfile({ uid: user.uid, name: fullName, email: user.email || "" });
-      resetLoginForm();
       alert("Login successful");
     } catch (error: any) {
       alert(error.message);
     }
   };
 
-  const handlePopupLogin = async () => {
-    if (!selectedProfile) return;
+  const handlePopupLogin = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(
-        auth,
-        selectedProfile.email,
-        popupPassword,
-      );
+      await signInWithEmailAndPassword(auth, email, password);
       closePopup();
       alert("Login successful");
     } catch (error: any) {

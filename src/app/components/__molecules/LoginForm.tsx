@@ -1,16 +1,27 @@
 "use client";
 
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { loginSchema, LoginFormValues } from "@/schemas/loginSchema";
+
 import Link from "next/link";
 import LoginInput from "../__atoms/LoginInput";
 import { useAuthStore } from "@/store/useAuthStore";
 
 type Props = {
-  onLogin: () => void;
+  onLogin: (data: LoginFormValues) => void;
 };
 
 export default function LoginForm({ onLogin }: Props) {
-  const { email, password, setEmail, setPassword, setShowProfiles } =
-    useAuthStore();
+  const { setShowProfiles } = useAuthStore();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: yupResolver(loginSchema),
+  });
 
   return (
     <>
@@ -27,19 +38,19 @@ export default function LoginForm({ onLogin }: Props) {
       <LoginInput
         type="email"
         placeholder="Email address"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        error={errors.email?.message}
+        {...register("email")}
       />
 
       <LoginInput
         type="password"
         placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
+        error={errors.password?.message}
+        {...register("password")}
       />
 
       <button
-        onClick={onLogin}
+        onClick={handleSubmit(onLogin)}
         className="w-full h-[40px] bg-[#1877F2] mx-4 text-white rounded-full hover:bg-[#166FE5] active:scale-[0.98] cursor-pointer"
       >
         Log in

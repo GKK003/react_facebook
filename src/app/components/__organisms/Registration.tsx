@@ -58,7 +58,7 @@ export default function RegisterForm() {
         createdAt: new Date(),
       });
 
-      router.push("/home");
+      router.push("/feed");
     } catch (error: any) {
       alert(error.message);
     }

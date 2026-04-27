@@ -56,7 +56,7 @@ export default function ForLogin() {
 
       await updateProfile(user, { displayName: fullName });
       saveProfile({ uid: user.uid, name: fullName, email: user.email || "" });
-      router.push("/home");
+      router.push("/feed");
     } catch (error: any) {
       alert(error.message);
     }
@@ -84,7 +84,7 @@ export default function ForLogin() {
       await updateProfile(user, { displayName: fullName });
       saveProfile({ uid: user.uid, name: fullName, email: user.email || "" });
       closePopup();
-      router.push("/home");
+      router.push("/feed");
     } catch (error: any) {
       alert(error.message);
     }

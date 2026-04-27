@@ -27,7 +27,7 @@ interface UserResult {
 const NAV_TABS = [
   {
     id: "home",
-    href: "/home",
+    href: "/feed",
     icon: (active: boolean) => (
       <svg
         viewBox="0 0 24 24"
@@ -173,7 +173,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm h-[56px] flex items-center px-4 max-md:px-2">
       <div className="flex items-center gap-2 flex-shrink-0">
-        <Link href="/home">
+        <Link href="/feed">
           <Image
             src={FbLogo}
             alt="Facebook"

@@ -20,3 +20,6 @@ body {
 @custom-variant md (@media (max-width: 767px));
 @custom-variant sm (@media (max-width: 585px));
 @custom-variant gg (@media (max-width: 450px));
+
+@import "swiper/css";
+@import "swiper/css/navigation";

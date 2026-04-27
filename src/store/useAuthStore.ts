@@ -10,7 +10,6 @@ type Profile = {
 type AuthState = {
   profiles: Profile[];
   showProfiles: boolean;
-
   popup: boolean;
   selectedProfile: Profile | null;
 
@@ -36,11 +35,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   setSelectedProfile: (e) => set({ selectedProfile: e }),
 
   loadProfiles: () => {
+    if (typeof window === "undefined") return;
     const stored = JSON.parse(localStorage.getItem("profiles") || "[]");
     set({ profiles: stored, showProfiles: stored.length > 0 });
   },
 
   saveProfile: (profile) => {
+    if (typeof window === "undefined") return;
     const stored = JSON.parse(localStorage.getItem("profiles") || "[]");
     const filtered = stored.filter((p: Profile) => p.uid !== profile.uid);
     const updated = [profile, ...filtered].slice(0, 2);

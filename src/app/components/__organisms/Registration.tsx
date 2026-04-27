@@ -10,7 +10,7 @@ import GenderField from "../__molecules/GenderField";
 import Input from "../__atoms/Input";
 
 import { auth, db } from "@/firebase/firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -45,6 +45,10 @@ export default function RegisterForm() {
         data.password,
       );
 
+      const fullName = `${data.firstName} ${data.lastName}`.trim();
+
+      await updateProfile(userCred.user, { displayName: fullName });
+
       await setDoc(doc(db, "users", userCred.user.uid), {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -54,7 +58,7 @@ export default function RegisterForm() {
         createdAt: new Date(),
       });
 
-      router.push("/");
+      router.push("/home");
     } catch (error: any) {
       alert(error.message);
     }

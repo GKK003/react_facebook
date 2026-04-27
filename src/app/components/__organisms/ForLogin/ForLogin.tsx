@@ -18,7 +18,7 @@ import { LoginFormValues } from "@/schemas/loginSchema";
 import LoginForm from "../../__molecules/LoginForm";
 import ProfileList from "../../__molecules/ProfileList";
 import ProfilePopup from "../../__molecules/ProfilePopup";
-import Footer from "../../footer/Footer";
+import Footer from "../footer/Footer";
 
 export default function ForLogin() {
   const router = useRouter();

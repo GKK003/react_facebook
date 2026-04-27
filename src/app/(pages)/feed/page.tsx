@@ -3,7 +3,18 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  serverTimestamp,
+  doc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+} from "firebase/firestore";
 import { auth, db } from "@/firebase/firebase";
 
 import Navbar from "@/app/components/__organisms/Navbar";
@@ -25,46 +36,97 @@ export default function HomePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [postText, setPostText] = useState("");
+  const [posting, setPosting] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser({
-          displayName: firebaseUser.displayName,
+          displayName: firebaseUser.displayName || "Giorgi",
           photoURL: firebaseUser.photoURL,
           uid: firebaseUser.uid,
         });
       } else {
         router.push("/");
       }
+
       setLoading(false);
     });
+
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Post[];
-      setPosts(data);
-    });
+
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        const data = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        })) as Post[];
+
+        setPosts(data);
+      },
+      (error) => {
+        console.error("Posts listener error:", error);
+      },
+    );
+
     return () => unsub();
   }, []);
 
-  const handleLike = (postId: string) => {
-    console.log("Like post", postId);
+  const handleCreatePost = async () => {
+    if (!postText.trim() || !user) return;
+
+    setPosting(true);
+
+    try {
+      await addDoc(collection(db, "posts"), {
+        authorId: user.uid,
+        authorName: user.displayName || "Giorgi",
+        authorPhoto: user.photoURL || null,
+        text: postText.trim(),
+        createdAt: serverTimestamp(),
+        likes: [],
+        comments: 0,
+        shares: 0,
+      });
+
+      setPostText("");
+      setShowCreatePost(false);
+    } catch (err) {
+      console.error("Create post error:", err);
+    } finally {
+      setPosting(false);
+    }
   };
 
-  const handleComment = (postId: string) => {
+  const handleLike = async (post: Post) => {
+    const userId = user?.uid || auth.currentUser?.uid;
+    if (!userId) return;
+
+    const postRef = doc(db, "posts", post.id);
+
+    const alreadyLiked = Array.isArray(post.likes)
+      ? post.likes.includes(userId)
+      : false;
+
+    try {
+      await updateDoc(postRef, {
+        likes: alreadyLiked ? arrayRemove(userId) : arrayUnion(userId),
+      });
+    } catch (err) {
+      console.error("Like update error:", err);
+    }
+  };
+
+  const handleComment = (postId: string) =>
     console.log("Comment on post", postId);
-  };
 
-  const handleShare = (postId: string) => {
-    console.log("Share post", postId);
-  };
+  const handleShare = (postId: string) => console.log("Share post", postId);
 
   return (
     <div className="min-h-screen bg-[#f0f2f5]">
@@ -76,6 +138,7 @@ export default function HomePage() {
         <div className="flex-1 min-w-0 py-4 px-4 max-w-[680px] mx-auto">
           <div className="flex flex-col gap-4">
             <CreatePostBox user={user} onOpen={() => setShowCreatePost(true)} />
+
             <div className="bg-transparent">
               <StoriesRow user={user} stories={[]} />
             </div>
@@ -84,6 +147,7 @@ export default function HomePage() {
               <span className="text-[17px] font-bold text-[#050505]">
                 Posts
               </span>
+
               <button className="flex items-center gap-1.5 bg-[#e4e6ea] hover:bg-[#d8dadf] transition-colors rounded-lg px-3 py-1.5 text-[15px] font-semibold text-[#050505]">
                 <svg
                   viewBox="0 0 24 24"
@@ -125,7 +189,10 @@ export default function HomePage() {
                 <PostCard
                   key={post.id}
                   post={post}
-                  onLike={handleLike}
+                  currentUserId={user?.uid}
+                  currentUserName={user?.displayName || "Giorgi"}
+                  currentUserPhoto={user?.photoURL || null}
+                  onLike={() => handleLike(post)}
                   onComment={handleComment}
                   onShare={handleShare}
                 />
@@ -150,6 +217,7 @@ export default function HomePage() {
               <h2 className="text-[20px] font-bold text-[#050505]">
                 Create post
               </h2>
+
               <button
                 onClick={() => setShowCreatePost(false)}
                 className="absolute right-4 w-9 h-9 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] flex items-center justify-center transition-colors"
@@ -174,45 +242,44 @@ export default function HomePage() {
                   />
                 ) : (
                   <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                    {user?.displayName?.[0]?.toUpperCase() || "U"}
+                    {user?.displayName?.[0]?.toUpperCase() || "G"}
                   </div>
                 )}
               </div>
+
               <div>
                 <p className="text-[15px] font-semibold text-[#050505]">
-                  {user?.displayName || "You"}
+                  {user?.displayName || "Giorgi"}
                 </p>
+
                 <button className="flex items-center gap-1 bg-[#e4e6ea] rounded-md px-2 py-0.5 text-[13px] font-semibold text-[#050505] hover:bg-[#d8dadf] transition-colors">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    className="w-3.5 h-3.5"
-                  >
-                    <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-                  </svg>
                   Friends
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    className="w-3 h-3"
-                  >
-                    <path d="M7 10l5 5 5-5z" />
-                  </svg>
                 </button>
               </div>
             </div>
 
             <div className="px-4 pb-2">
               <textarea
-                placeholder={`What's on your mind, ${user?.displayName?.split(" ")[0] || "you"}?`}
+                value={postText}
+                onChange={(e) => setPostText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && e.ctrlKey) handleCreatePost();
+                }}
+                placeholder={`What's on your mind, ${
+                  user?.displayName?.split(" ")[0] || "you"
+                }?`}
                 className="w-full resize-none outline-none text-[20px] text-[#050505] placeholder-[#8a8d91] min-h-[120px]"
                 autoFocus
               />
             </div>
 
             <div className="px-4 pb-4">
-              <button className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white font-semibold text-[17px] py-2 rounded-lg transition-colors">
-                Post
+              <button
+                onClick={handleCreatePost}
+                disabled={!postText.trim() || posting}
+                className="w-full bg-[#1877f2] hover:bg-[#166fe5] disabled:bg-[#e4e6ea] disabled:text-[#bcc0c4] disabled:cursor-not-allowed text-white font-semibold text-[17px] py-2 rounded-lg transition-colors"
+              >
+                {posting ? "Posting..." : "Post"}
               </button>
             </div>
           </div>

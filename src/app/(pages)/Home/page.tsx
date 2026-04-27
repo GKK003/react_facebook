@@ -212,7 +212,7 @@ export default function HomePage() {
 
             <div className="px-4 pb-4">
               <button className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white font-semibold text-[17px] py-2 rounded-lg transition-colors">
-                Post.
+                Post
               </button>
             </div>
           </div>

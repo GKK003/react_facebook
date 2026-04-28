@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, updateProfile } from "firebase/auth";
 import {
   doc,
   getDoc,
@@ -15,7 +15,10 @@ import {
   arrayUnion,
   arrayRemove,
 } from "firebase/firestore";
+
 import { auth, db } from "@/firebase/firebase";
+import { uploadToCloudinary } from "@/lib/cloudinary";
+
 import Navbar from "@/app/components/__organisms/Navbar";
 import PostCard, { Post } from "@/app/components/__molecules/PostCard";
 import Image from "next/image";
@@ -25,7 +28,11 @@ interface UserProfile {
   lastName: string;
   email: string;
   gender: string;
-  birthday: { day: string; month: string; year: string };
+  birthday: {
+    day: string;
+    month: string;
+    year: string;
+  };
   photoURL?: string | null;
   coverPhotoURL?: string | null;
   bio?: string;
@@ -33,10 +40,12 @@ interface UserProfile {
 
 export default function ProfilePage() {
   const router = useRouter();
+
   const [authUser, setAuthUser] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState<"profile" | "cover" | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -48,6 +57,7 @@ export default function ProfilePage() {
       setAuthUser(user);
 
       const snap = await getDoc(doc(db, "users", user.uid));
+
       if (snap.exists()) {
         setProfile(snap.data() as UserProfile);
       }
@@ -83,18 +93,92 @@ export default function ProfilePage() {
       ? post.likes.includes(authUser.uid)
       : false;
 
-    await updateDoc(postRef, {
-      likes: alreadyLiked
-        ? arrayRemove(authUser.uid)
-        : arrayUnion(authUser.uid),
-    });
+    try {
+      await updateDoc(postRef, {
+        likes: alreadyLiked
+          ? arrayRemove(authUser.uid)
+          : arrayUnion(authUser.uid),
+      });
+    } catch (err) {
+      console.error("Like post error:", err);
+    }
   };
 
-  if (loading) return <div className="min-h-screen bg-[#f0f2f5]" />;
+  const handleImageUpload = async (
+    file: File | undefined,
+    type: "profile" | "cover",
+  ) => {
+    if (!file || !authUser?.uid) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please choose an image.");
+      return;
+    }
+
+    setUploading(type);
+
+    try {
+      const url = await uploadToCloudinary(file);
+
+      if (type === "profile") {
+        await updateDoc(doc(db, "users", authUser.uid), {
+          photoURL: url,
+        });
+
+        if (auth.currentUser) {
+          await updateProfile(auth.currentUser, {
+            photoURL: url,
+          });
+        }
+
+        setProfile((prev) =>
+          prev
+            ? {
+                ...prev,
+                photoURL: url,
+              }
+            : prev,
+        );
+
+        setAuthUser((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                photoURL: url,
+              }
+            : prev,
+        );
+      }
+
+      if (type === "cover") {
+        await updateDoc(doc(db, "users", authUser.uid), {
+          coverPhotoURL: url,
+        });
+
+        setProfile((prev) =>
+          prev
+            ? {
+                ...prev,
+                coverPhotoURL: url,
+              }
+            : prev,
+        );
+      }
+    } catch (err: any) {
+      console.error("Image upload error:", err);
+      alert(err.message || "Image upload failed.");
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  if (loading) {
+    return <div className="min-h-screen bg-[#f0f2f5]" />;
+  }
 
   const fullName =
     profile?.firstName || profile?.lastName
-      ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim()
+      ? `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim()
       : authUser?.displayName || "Giorgi";
 
   const userPhoto = profile?.photoURL || authUser?.photoURL || null;
@@ -118,14 +202,28 @@ export default function ProfilePage() {
                 alt="Cover"
                 fill
                 className="object-cover"
+                unoptimized
               />
             ) : (
               <div className="w-full h-full bg-[#c9cdd2]" />
             )}
 
-            <button className="absolute bottom-4 right-4 flex items-center gap-2 bg-white hover:bg-[#f0f2f5] px-3 py-2 rounded-lg text-[15px] font-semibold text-[#050505]">
-              Edit cover photo
-            </button>
+            <label className="absolute bottom-4 right-4 flex items-center gap-2 bg-white hover:bg-[#f0f2f5] px-3 py-2 rounded-lg text-[15px] font-semibold text-[#050505] cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) =>
+                  handleImageUpload(e.target.files?.[0], "cover")
+                }
+              />
+
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                <path d="M20 5h-3.2l-1.8-2H9L7.2 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zM12 18c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5z" />
+              </svg>
+
+              {uploading === "cover" ? "Uploading..." : "Edit cover photo"}
+            </label>
           </div>
 
           <div className="px-4 pb-4">
@@ -138,6 +236,7 @@ export default function ProfilePage() {
                       alt={fullName}
                       fill
                       className="object-cover"
+                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[64px] font-bold">
@@ -145,6 +244,29 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
+
+                <label className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] flex items-center justify-center cursor-pointer border-2 border-white">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={(e) =>
+                      handleImageUpload(e.target.files?.[0], "profile")
+                    }
+                  />
+
+                  {uploading === "profile" ? (
+                    <div className="w-4 h-4 border-2 border-[#050505] border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="w-5 h-5 text-[#050505]"
+                    >
+                      <path d="M20 5h-3.2l-1.8-2H9L7.2 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zM12 18c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5zm0-1.8c1.8 0 3.2-1.4 3.2-3.2S13.8 9.8 12 9.8 8.8 11.2 8.8 13s1.4 3.2 3.2 3.2z" />
+                    </svg>
+                  )}
+                </label>
               </div>
 
               <div className="flex-1 pb-2">

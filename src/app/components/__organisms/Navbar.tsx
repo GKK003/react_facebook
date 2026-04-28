@@ -3,8 +3,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/firebase/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import {
+  collection,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+  doc,
+  updateDoc,
+  deleteDoc,
+} from "firebase/firestore";
+import { auth, db } from "@/firebase/firebase";
 
 import FbLogo from "@/assets/images/fblogo.png";
 
@@ -22,6 +32,16 @@ interface UserResult {
   lastName: string;
   email: string;
   photoURL?: string | null;
+}
+
+interface FriendRequest {
+  id: string;
+  fromUid: string;
+  toUid: string;
+  fromName: string;
+  fromPhoto?: string | null;
+  status: "pending" | "accepted";
+  createdAt?: any;
 }
 
 const NAV_TABS = [
@@ -123,28 +143,91 @@ const NAV_TABS = [
 ];
 
 export default function Navbar({ user, activePage = "home" }: NavbarProps) {
+  const [currentUid, setCurrentUid] = useState<string | null>(null);
+
   const [showMenu, setShowMenu] = useState(false);
   const [showMessenger, setShowMessenger] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<UserResult[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [searching, setSearching] = useState(false);
+
+  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
+  const [requestActionLoading, setRequestActionLoading] = useState<
+    string | null
+  >(null);
+
   const searchRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (firebaseUser) => {
+      setCurrentUid(firebaseUser?.uid || null);
+    });
+
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (!currentUid) {
+      setFriendRequests([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "friendRequests"),
+      where("toUid", "==", currentUid),
+      where("status", "==", "pending"),
+    );
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const data = snap.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        })) as FriendRequest[];
+
+        data.sort((a, b) => {
+          const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return bTime - aTime;
+        });
+
+        setFriendRequests(data);
+      },
+      (err) => {
+        console.error("Friend requests listener error:", err);
+      },
+    );
+
+    return () => unsub();
+  }, [currentUid]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowResults(false);
       }
+
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(e.target as Node)
+      ) {
+        setShowNotifications(false);
+      }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
-    if (query.trim().length < 2) {
+  const handleSearch = async (value: string) => {
+    setSearchQuery(value);
+
+    if (value.trim().length < 2) {
       setSearchResults([]);
       setShowResults(false);
       return;
@@ -155,18 +238,50 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
 
     try {
       const snapshot = await getDocs(collection(db, "users"));
-      const q = query.toLowerCase();
+      const q = value.toLowerCase();
+
       const results = snapshot.docs
-        .map((doc) => ({ uid: doc.id, ...doc.data() }) as UserResult)
+        .map(
+          (docSnap) => ({ uid: docSnap.id, ...docSnap.data() }) as UserResult,
+        )
         .filter((u) => {
-          const full = `${u.firstName} ${u.lastName}`.toLowerCase();
+          const full = `${u.firstName || ""} ${u.lastName || ""}`.toLowerCase();
           return full.includes(q) || u.email?.toLowerCase().includes(q);
         });
+
       setSearchResults(results);
     } catch (err) {
-      console.error(err);
+      console.error("Search error:", err);
     } finally {
       setSearching(false);
+    }
+  };
+
+  const handleAcceptRequest = async (request: FriendRequest) => {
+    setRequestActionLoading(request.id);
+
+    try {
+      await updateDoc(doc(db, "friendRequests", request.id), {
+        status: "accepted",
+      });
+    } catch (err) {
+      console.error("Accept friend request error:", err);
+      alert("Could not accept request.");
+    } finally {
+      setRequestActionLoading(null);
+    }
+  };
+
+  const handleDeleteRequest = async (request: FriendRequest) => {
+    setRequestActionLoading(request.id);
+
+    try {
+      await deleteDoc(doc(db, "friendRequests", request.id));
+    } catch (err) {
+      console.error("Delete friend request error:", err);
+      alert("Could not delete request.");
+    } finally {
+      setRequestActionLoading(null);
     }
   };
 
@@ -192,6 +307,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
             >
               <path d="M15.5 14h-.79l-.28-.27A6.5 6.5 0 109.5 16c1.6 0 3-.6 4.2-1.6l.3.3v.8l5 5L20.5 19l-5-5z" />
             </svg>
+
             <input
               type="text"
               value={searchQuery}
@@ -228,13 +344,15 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                           width={40}
                           height={40}
                           className="w-full h-full object-cover"
+                          unoptimized
                         />
                       ) : (
                         <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                          {u.firstName?.[0]?.toUpperCase()}
+                          {u.firstName?.[0]?.toUpperCase() || "U"}
                         </div>
                       )}
                     </div>
+
                     <div>
                       <p className="text-[15px] font-semibold text-[#050505]">
                         {u.firstName} {u.lastName}
@@ -253,9 +371,12 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
           <Link
             key={tab.id}
             href={tab.href}
-            className={`relative flex items-center justify-center w-[116px] h-[48px] rounded-lg hover:bg-[#f0f2f5] ${activePage === tab.id ? "border-[#1877f2]" : ""}`}
+            className={`relative flex items-center justify-center w-[116px] h-[48px] rounded-lg hover:bg-[#f0f2f5] ${
+              activePage === tab.id ? "border-[#1877f2]" : ""
+            }`}
           >
             {tab.icon(activePage === tab.id)}
+
             {activePage === tab.id && (
               <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#1877f2]" />
             )}
@@ -265,29 +386,153 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
 
       <div className="flex items-center gap-2 ml-auto max-md:gap-1">
         <button
-          onClick={() => setShowMenu(!showMenu)}
+          onClick={() => {
+            setShowMenu(!showMenu);
+            setShowMessenger(false);
+            setShowNotifications(false);
+          }}
           className="w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] flex items-center justify-center"
         >
           <svg viewBox="0 0 24 24" className="w-5 h-5">
             <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
           </svg>
         </button>
+
         <button
-          onClick={() => setShowMessenger(!showMessenger)}
+          onClick={() => {
+            setShowMessenger(!showMessenger);
+            setShowMenu(false);
+            setShowNotifications(false);
+          }}
           className="w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] flex items-center justify-center"
         >
           <svg viewBox="0 0 24 24" className="w-5 h-5">
             <path d="M12 2C6 2 2 6 2 11.5c0 3 1.2 5.5 3.2 7.2l.1 2c0 .5.5.9 1 .7l2-1c.2 0 .4-.1.6 0 .6.2 1.2.3 1.9.3 6 0 10-4 10-9.5S18 2 12 2z" />
           </svg>
         </button>
-        <button
-          onClick={() => setShowNotifications(!showNotifications)}
-          className="w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] flex items-center justify-center"
-        >
-          <svg viewBox="0 0 24 24" className="w-5 h-5">
-            <path d="M12 22a2 2 0 002-2h-4a2 2 0 002 2zm6-6v-5c0-3-1.6-5.5-4.5-6.3V4a1.5 1.5 0 10-3 0v.7C7.6 5.5 6 8 6 11v5l-2 2v1h16v-1l-2-2z" />
-          </svg>
-        </button>
+
+        <div ref={notificationsRef} className="relative">
+          <button
+            onClick={() => {
+              setShowNotifications(!showNotifications);
+              setShowMenu(false);
+              setShowMessenger(false);
+            }}
+            className={`relative w-10 h-10 rounded-full flex items-center justify-center ${
+              showNotifications
+                ? "bg-[#e7f3ff] text-[#1877f2]"
+                : "bg-[#e4e6ea] hover:bg-[#d8dadf]"
+            }`}
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+              <path d="M12 22a2 2 0 002-2h-4a2 2 0 002 2zm6-6v-5c0-3-1.6-5.5-4.5-6.3V4a1.5 1.5 0 10-3 0v.7C7.6 5.5 6 8 6 11v5l-2 2v1h16v-1l-2-2z" />
+            </svg>
+
+            {friendRequests.length > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#f02849] text-white text-[11px] font-bold flex items-center justify-center border-2 border-white">
+                {friendRequests.length}
+              </span>
+            )}
+          </button>
+
+          {showNotifications && (
+            <div className="absolute right-0 top-[48px] w-[380px] max-h-[calc(100vh-80px)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-[#ced0d4] z-50 p-3">
+              <h2 className="text-[24px] font-bold text-[#050505] mb-3">
+                Notifications
+              </h2>
+
+              {friendRequests.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-[17px] font-bold text-[#050505] px-1 mb-2">
+                    Friend requests
+                  </p>
+
+                  <div className="flex flex-col gap-2">
+                    {friendRequests.map((request) => (
+                      <div
+                        key={request.id}
+                        className="flex gap-3 p-2 rounded-lg hover:bg-[#f0f2f5]"
+                      >
+                        <Link
+                          href={`/profile/${request.fromUid}`}
+                          onClick={() => setShowNotifications(false)}
+                          className="w-14 h-14 rounded-full overflow-hidden bg-gray-300 flex-shrink-0"
+                        >
+                          {request.fromPhoto ? (
+                            <Image
+                              src={request.fromPhoto}
+                              alt={request.fromName}
+                              width={56}
+                              height={56}
+                              className="w-full h-full object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[20px] font-bold">
+                              {request.fromName?.[0]?.toUpperCase() || "U"}
+                            </div>
+                          )}
+                        </Link>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[15px] text-[#050505] leading-5">
+                            <Link
+                              href={`/profile/${request.fromUid}`}
+                              onClick={() => setShowNotifications(false)}
+                              className="font-semibold hover:underline"
+                            >
+                              {request.fromName}
+                            </Link>{" "}
+                            sent you a friend request.
+                          </p>
+
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={() => handleAcceptRequest(request)}
+                              disabled={requestActionLoading === request.id}
+                              className="flex-1 h-9 rounded-lg bg-[#1877f2] hover:bg-[#166fe5] text-white text-[15px] font-semibold disabled:opacity-70"
+                            >
+                              {requestActionLoading === request.id
+                                ? "..."
+                                : "Confirm"}
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteRequest(request)}
+                              disabled={requestActionLoading === request.id}
+                              className="flex-1 h-9 rounded-lg bg-[#e4e6ea] hover:bg-[#d8dadf] text-[#050505] text-[15px] font-semibold disabled:opacity-70"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {friendRequests.length === 0 && (
+                <div className="py-8 text-center">
+                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-[#e4e6ea] flex items-center justify-center">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="w-8 h-8 text-[#65676b]"
+                    >
+                      <path d="M12 22a2 2 0 002-2h-4a2 2 0 002 2zm6-6v-5c0-3-1.6-5.5-4.5-6.3V4a1.5 1.5 0 10-3 0v.7C7.6 5.5 6 8 6 11v5l-2 2v1h16v-1l-2-2z" />
+                    </svg>
+                  </div>
+
+                  <p className="text-[15px] font-semibold text-[#65676b]">
+                    No new notifications
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <Link href="/profile">
           <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 hover:opacity-90">
             {user?.photoURL ? (
@@ -297,6 +542,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                 width={40}
                 height={40}
                 className="w-full h-full object-cover"
+                unoptimized
               />
             ) : (
               <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">

@@ -27,11 +27,12 @@ export default function ProfileList() {
           >
             <div className="flex items-center gap-3">
               <Image
-                src={NoProfile}
-                alt="no profile pic"
+                src={profile.photoURL || NoProfile}
+                alt={profile.name}
                 width={55}
                 height={55}
-                className="rounded-full"
+                className="w-[55px] h-[55px] rounded-full object-cover"
+                unoptimized
               />
               <span>{profile.name}</span>
             </div>

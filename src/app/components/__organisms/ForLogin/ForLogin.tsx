@@ -22,6 +22,7 @@ import Footer from "../footer/Footer";
 
 export default function ForLogin() {
   const router = useRouter();
+
   const {
     showProfiles,
     popup,
@@ -33,7 +34,29 @@ export default function ForLogin() {
 
   useEffect(() => {
     loadProfiles();
-  }, []);
+  }, [loadProfiles]);
+
+  const getUserProfileData = async (uid: string, email: string | null) => {
+    const docRef = doc(db, "users", uid);
+    const docSnap = await getDoc(docRef);
+
+    let fullName = email || "";
+    let photoURL: string | null = null;
+
+    if (docSnap.exists()) {
+      const d = docSnap.data();
+
+      fullName =
+        `${d.firstName || ""} ${d.lastName || ""}`.trim() || email || "";
+
+      photoURL = d.photoURL || null;
+    }
+
+    return {
+      fullName,
+      photoURL,
+    };
+  };
 
   const handleLogin = async (data: LoginFormValues) => {
     try {
@@ -42,20 +65,26 @@ export default function ForLogin() {
         data.email,
         data.password,
       );
+
       const user = userCredential.user;
 
-      const docRef = doc(db, "users", user.uid);
-      const docSnap = await getDoc(docRef);
+      const { fullName, photoURL } = await getUserProfileData(
+        user.uid,
+        user.email,
+      );
 
-      let fullName = user.email || "";
-      if (docSnap.exists()) {
-        const d = docSnap.data();
-        fullName =
-          `${d.firstName || ""} ${d.lastName || ""}`.trim() || user.email || "";
-      }
+      await updateProfile(user, {
+        displayName: fullName,
+        photoURL: photoURL || user.photoURL || null,
+      });
 
-      await updateProfile(user, { displayName: fullName });
-      saveProfile({ uid: user.uid, name: fullName, email: user.email || "" });
+      saveProfile({
+        uid: user.uid,
+        name: fullName,
+        email: user.email || "",
+        photoURL: photoURL || user.photoURL || null,
+      });
+
       router.push("/feed");
     } catch (error: any) {
       alert(error.message);
@@ -69,20 +98,26 @@ export default function ForLogin() {
         email,
         password,
       );
+
       const user = userCredential.user;
 
-      const docRef = doc(db, "users", user.uid);
-      const docSnap = await getDoc(docRef);
+      const { fullName, photoURL } = await getUserProfileData(
+        user.uid,
+        user.email,
+      );
 
-      let fullName = user.email || "";
-      if (docSnap.exists()) {
-        const d = docSnap.data();
-        fullName =
-          `${d.firstName || ""} ${d.lastName || ""}`.trim() || user.email || "";
-      }
+      await updateProfile(user, {
+        displayName: fullName,
+        photoURL: photoURL || user.photoURL || null,
+      });
 
-      await updateProfile(user, { displayName: fullName });
-      saveProfile({ uid: user.uid, name: fullName, email: user.email || "" });
+      saveProfile({
+        uid: user.uid,
+        name: fullName,
+        email: user.email || "",
+        photoURL: photoURL || user.photoURL || null,
+      });
+
       closePopup();
       router.push("/feed");
     } catch (error: any) {
@@ -139,6 +174,7 @@ export default function ForLogin() {
           <ProfilePopup onLogin={handlePopupLogin} />
         )}
       </div>
+
       <Footer />
     </>
   );

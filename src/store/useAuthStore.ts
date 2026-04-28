@@ -4,7 +4,7 @@ type Profile = {
   uid: string;
   name: string;
   email: string;
-  photoURL?: string;
+  photoURL?: string | null;
 };
 
 type AuthState = {

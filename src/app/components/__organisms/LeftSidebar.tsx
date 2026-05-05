@@ -34,7 +34,7 @@ interface LeftSidebarProps {
 
 export default function LeftSidebar({ user }: LeftSidebarProps) {
   return (
-    <div className="flex flex-col w-[360px] sticky top-[56px] h-[calc(100vh-56px)] overflow-y-auto scrollbar-hide px-2 pb-4">
+    <div className="flex flex-col w-[360px] sticky top-[56px] h-[calc(100vh-56px)] overflow-y-auto scrollbar-hide px-2 pb-4 lg:hidden">
       <Link
         href="/profile"
         className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#f2f2f2] transition-colors mt-2"

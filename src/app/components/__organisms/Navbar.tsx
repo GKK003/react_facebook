@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
@@ -14,8 +14,8 @@ import {
   updateDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { auth, db } from "@/firebase/firebase";
 
+import { auth, db } from "@/firebase/firebase";
 import FbLogo from "@/assets/images/fblogo.png";
 
 interface NavbarProps {
@@ -154,6 +154,8 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
   const [showResults, setShowResults] = useState(false);
   const [searching, setSearching] = useState(false);
 
+  const [showSearchPopup, setShowSearchPopup] = useState(false);
+
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [requestActionLoading, setRequestActionLoading] = useState<
     string | null
@@ -161,6 +163,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
 
   const searchRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const searchPopupInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
@@ -224,12 +227,18 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (showSearchPopup) {
+      setTimeout(() => searchPopupInputRef.current?.focus(), 0);
+    }
+  }, [showSearchPopup]);
+
   const handleSearch = async (value: string) => {
     setSearchQuery(value);
 
     if (value.trim().length < 2) {
       setSearchResults([]);
-      setShowResults(false);
+      setShowResults(true);
       return;
     }
 
@@ -255,6 +264,21 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
     } finally {
       setSearching(false);
     }
+  };
+
+  const openSearchPopup = () => {
+    setShowSearchPopup(true);
+    setShowMenu(false);
+    setShowMessenger(false);
+    setShowNotifications(false);
+    setShowResults(true);
+  };
+
+  const closeSearchPopup = () => {
+    setShowSearchPopup(false);
+    setShowResults(false);
+    setSearchQuery("");
+    setSearchResults([]);
   };
 
   const handleAcceptRequest = async (request: FriendRequest) => {
@@ -286,61 +310,367 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm h-[56px] flex items-center px-4 max-md:px-2">
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <Link href="/feed">
-          <Image
-            src={FbLogo}
-            alt="Facebook"
-            width={40}
-            height={40}
-            className="w-10 h-10"
-          />
-        </Link>
+    <>
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm h-[56px] flex items-center px-4 max-md:px-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Link href="/feed">
+            <Image
+              src={FbLogo}
+              alt="Facebook"
+              width={40}
+              height={40}
+              className="w-10 h-10"
+            />
+          </Link>
 
-        <div ref={searchRef} className="relative">
-          <div className="w-[240px] h-[40px] bg-[#f0f2f5] rounded-full flex items-center gap-2 px-3 max-md:w-[40px] max-md:justify-center">
-            <svg
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="w-4 h-4 text-[#8a8d91] flex-shrink-0"
+          <div ref={searchRef} className="relative">
+            <button
+              onClick={openSearchPopup}
+              className="hidden lg:flex w-10 h-10 rounded-full bg-[#f0f2f5] items-center justify-center hover:bg-[#e4e6eb]"
             >
-              <path d="M15.5 14h-.79l-.28-.27A6.5 6.5 0 109.5 16c1.6 0 3-.6 4.2-1.6l.3.3v.8l5 5L20.5 19l-5-5z" />
+              <svg
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="w-5 h-5 text-[#606770]"
+              >
+                <path d="M15.5 14h-.79l-.28-.27A6.5 6.5 0 109.5 16c1.6 0 3-.6 4.2-1.6l.3.3v.8l5 5L20.5 19l-5-5z" />
+              </svg>
+            </button>
+
+            <div className="w-[240px] h-[40px] bg-[#f0f2f5] rounded-full flex items-center gap-2 px-3 lg:hidden">
+              <svg
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="w-4 h-4 text-[#8a8d91] flex-shrink-0"
+              >
+                <path d="M15.5 14h-.79l-.28-.27A6.5 6.5 0 109.5 16c1.6 0 3-.6 4.2-1.6l.3.3v.8l5 5L20.5 19l-5-5z" />
+              </svg>
+
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                onFocus={() => setShowResults(true)}
+                placeholder="Search Facebook"
+                className="bg-transparent outline-none text-[15px] text-[#050505] placeholder-[#8a8d91] w-full"
+              />
+            </div>
+
+            {showResults && !showSearchPopup && (
+              <div className="absolute top-[44px] left-0 w-[360px] bg-white rounded-lg shadow-xl border border-[#ced0d4] py-2 z-50">
+                {searching ? (
+                  <div className="px-4 py-3 text-[14px] text-[#8a8d91]">
+                    Searching...
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <div className="px-4 py-3 text-[14px] text-[#8a8d91]">
+                    {searchQuery.trim().length < 2
+                      ? ""
+                      : `No results for "${searchQuery}"`}
+                  </div>
+                ) : (
+                  searchResults.map((u) => (
+                    <Link
+                      key={u.uid}
+                      href={`/profile/${u.uid}`}
+                      onClick={() => setShowResults(false)}
+                      className="flex items-center gap-3 px-3 py-2 hover:bg-[#f0f2f5] transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 flex-shrink-0">
+                        {u.photoURL ? (
+                          <Image
+                            src={u.photoURL}
+                            alt={u.firstName || "User"}
+                            width={40}
+                            height={40}
+                            className="w-full h-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
+                            {u.firstName?.[0]?.toUpperCase() || "U"}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <p className="text-[15px] font-semibold text-[#050505]">
+                          {u.firstName} {u.lastName}
+                        </p>
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center flex-1 gap-1 px-4 md:hidden">
+          {NAV_TABS.map((tab) => (
+            <Link
+              key={tab.id}
+              href={tab.href}
+              className={`relative flex items-center justify-center w-[116px] h-[48px] lg:w-[70px] lg:h-[40px] rounded-lg hover:bg-[#f0f2f5] ${
+                activePage === tab.id ? "border-[#1877f2]" : ""
+              }`}
+            >
+              {tab.icon(activePage === tab.id)}
+
+              {activePage === tab.id && (
+                <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#1877f2]" />
+              )}
+            </Link>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto max-md:gap-1">
+          <button
+            onClick={() => {
+              setShowMenu(!showMenu);
+              setShowMessenger(false);
+              setShowNotifications(false);
+            }}
+            className="w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] flex items-center justify-center"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5">
+              <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
+            </svg>
+          </button>
+
+          <button
+            onClick={() => {
+              setShowMessenger(!showMessenger);
+              setShowMenu(false);
+              setShowNotifications(false);
+            }}
+            className="w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] flex items-center justify-center"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5">
+              <path d="M12 2C6 2 2 6 2 11.5c0 3 1.2 5.5 3.2 7.2l.1 2c0 .5.5.9 1 .7l2-1c.2 0 .4-.1.6 0 .6.2 1.2.3 1.9.3 6 0 10-4 10-9.5S18 2 12 2z" />
+            </svg>
+          </button>
+
+          <button
+            onClick={() => {
+              setShowNotifications(!showNotifications);
+              setShowMenu(false);
+              setShowMessenger(false);
+            }}
+            className="relative w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] flex items-center justify-center"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5">
+              <path d="M12 22a2 2 0 002-2h-4a2 2 0 002 2zm6-6v-5c0-3-1.6-5.5-4.5-6.3V4a1.5 1.5 0 10-3 0v.7C7.6 5.5 6 8 6 11v5l-2 2v1h16v-1l-2-2z" />
             </svg>
 
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
-              placeholder="Search Facebook"
-              className="bg-transparent outline-none text-[15px] text-[#050505] placeholder-[#8a8d91] w-full max-md:hidden"
-            />
-          </div>
+            {friendRequests.length > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#f02849] text-white text-[11px] font-bold rounded-full flex items-center justify-center">
+                {friendRequests.length}
+              </span>
+            )}
+          </button>
 
-          {showResults && (
-            <div className="absolute top-[44px] left-0 w-[360px] bg-white rounded-lg shadow-xl border border-[#ced0d4] py-2 z-50">
+          <Link href="/profile">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 hover:opacity-90">
+              {user?.photoURL ? (
+                <Image
+                  src={user.photoURL}
+                  alt="profile"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
+                  {user?.displayName?.[0]?.toUpperCase() || "U"}
+                </div>
+              )}
+            </div>
+          </Link>
+        </div>
+
+        {showMenu && (
+          <div className="absolute right-4 top-[56px] w-[360px] max-w-[calc(100vw-16px)] bg-white rounded-lg shadow-xl border border-[#ced0d4] p-4">
+            <h2 className="text-[24px] font-bold text-[#050505] mb-3">Menu</h2>
+
+            <Link
+              href="/profile"
+              onClick={() => setShowMenu(false)}
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5]"
+            >
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300">
+                {user?.photoURL ? (
+                  <Image
+                    src={user.photoURL}
+                    alt="profile"
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
+                    {user?.displayName?.[0]?.toUpperCase() || "U"}
+                  </div>
+                )}
+              </div>
+
+              <span className="text-[15px] font-semibold text-[#050505]">
+                {user?.displayName || "User"}
+              </span>
+            </Link>
+          </div>
+        )}
+
+        {showMessenger && (
+          <div className="absolute right-4 top-[56px] w-[360px] max-w-[calc(100vw-16px)] bg-white rounded-lg shadow-xl border border-[#ced0d4] p-4">
+            <h2 className="text-[24px] font-bold text-[#050505] mb-3">Chats</h2>
+
+            <div className="text-[15px] text-[#65676b] py-4">No chats yet.</div>
+          </div>
+        )}
+
+        {showNotifications && (
+          <div
+            ref={notificationsRef}
+            className="absolute right-4 top-[56px] w-[380px] max-w-[calc(100vw-16px)] bg-white rounded-lg shadow-xl border border-[#ced0d4] p-4"
+          >
+            <h2 className="text-[24px] font-bold text-[#050505] mb-3">
+              Notifications
+            </h2>
+
+            {friendRequests.length === 0 ? (
+              <div className="text-[15px] text-[#65676b] py-4">
+                No notifications yet.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {friendRequests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="flex gap-3 p-2 rounded-lg hover:bg-[#f0f2f5]"
+                  >
+                    <Link href={`/profile/${request.fromUid}`}>
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-300">
+                        {request.fromPhoto ? (
+                          <Image
+                            src={request.fromPhoto}
+                            alt={request.fromName}
+                            width={48}
+                            height={48}
+                            className="w-full h-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
+                            {request.fromName?.[0]?.toUpperCase() || "U"}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[15px] text-[#050505]">
+                        <span className="font-semibold">
+                          {request.fromName}
+                        </span>{" "}
+                        sent you a friend request.
+                      </p>
+
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => handleAcceptRequest(request)}
+                          disabled={requestActionLoading === request.id}
+                          className="flex-1 h-9 bg-[#1877f2] hover:bg-[#166fe5] text-white rounded-lg text-[14px] font-semibold disabled:opacity-70"
+                        >
+                          Confirm
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteRequest(request)}
+                          disabled={requestActionLoading === request.id}
+                          className="flex-1 h-9 bg-[#e4e6eb] hover:bg-[#d8dadf] text-[#050505] rounded-lg text-[14px] font-semibold disabled:opacity-70"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {showSearchPopup && (
+        <div
+          className="fixed inset-0 z-[9998] bg-transparent"
+          onClick={closeSearchPopup}
+        >
+          <div
+            className="fixed top-0 left-0 z-[9999] w-[410px] max-w-[calc(100vw-8px)] bg-white rounded-br-xl shadow-[0_4px_18px_rgba(0,0,0,0.22)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="h-[72px] flex items-center gap-2 px-3">
+              <button
+                onClick={closeSearchPopup}
+                className="w-10 h-10 rounded-full hover:bg-[#f0f2f5] flex items-center justify-center text-[#65676b]"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.42-1.41L7.83 13H20v-2z" />
+                </svg>
+              </button>
+
+              <div className="flex-1 h-[46px] bg-[#f0f2f5] rounded-full flex items-center gap-2 px-4">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-4 h-4 text-[#8a8d91] flex-shrink-0"
+                >
+                  <path d="M15.5 14h-.79l-.28-.27A6.5 6.5 0 109.5 16c1.6 0 3-.6 4.2-1.6l.3.3v.8l5 5L20.5 19l-5-5z" />
+                </svg>
+
+                <input
+                  ref={searchPopupInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder="Search Facebook"
+                  className="w-full bg-transparent outline-none text-[15px] text-[#050505] placeholder-[#8a8d91]"
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-[#e4e6eb] py-2 max-h-[calc(100vh-72px)] overflow-y-auto">
               {searching ? (
                 <div className="px-4 py-3 text-[14px] text-[#8a8d91]">
                   Searching...
                 </div>
               ) : searchResults.length === 0 ? (
                 <div className="px-4 py-3 text-[14px] text-[#8a8d91]">
-                  No results for "{searchQuery}"
+                  {searchQuery.trim().length < 2
+                    ? ""
+                    : `No results for "${searchQuery}"`}
                 </div>
               ) : (
                 searchResults.map((u) => (
                   <Link
                     key={u.uid}
                     href={`/profile/${u.uid}`}
-                    onClick={() => setShowResults(false)}
+                    onClick={closeSearchPopup}
                     className="flex items-center gap-3 px-3 py-2 hover:bg-[#f0f2f5] transition-colors"
                   >
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 flex-shrink-0">
                       {u.photoURL ? (
                         <Image
                           src={u.photoURL}
-                          alt={u.firstName}
+                          alt={u.firstName || "User"}
                           width={40}
                           height={40}
                           className="w-full h-full object-cover"
@@ -362,196 +692,9 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                 ))
               )}
             </div>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-center flex-1 gap-1 px-4 max-md:hidden">
-        {NAV_TABS.map((tab) => (
-          <Link
-            key={tab.id}
-            href={tab.href}
-            className={`relative flex items-center justify-center w-[116px] h-[48px] rounded-lg hover:bg-[#f0f2f5] ${
-              activePage === tab.id ? "border-[#1877f2]" : ""
-            }`}
-          >
-            {tab.icon(activePage === tab.id)}
-
-            {activePage === tab.id && (
-              <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#1877f2]" />
-            )}
-          </Link>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-2 ml-auto max-md:gap-1">
-        <button
-          onClick={() => {
-            setShowMenu(!showMenu);
-            setShowMessenger(false);
-            setShowNotifications(false);
-          }}
-          className="w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] flex items-center justify-center"
-        >
-          <svg viewBox="0 0 24 24" className="w-5 h-5">
-            <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
-          </svg>
-        </button>
-
-        <button
-          onClick={() => {
-            setShowMessenger(!showMessenger);
-            setShowMenu(false);
-            setShowNotifications(false);
-          }}
-          className="w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] flex items-center justify-center"
-        >
-          <svg viewBox="0 0 24 24" className="w-5 h-5">
-            <path d="M12 2C6 2 2 6 2 11.5c0 3 1.2 5.5 3.2 7.2l.1 2c0 .5.5.9 1 .7l2-1c.2 0 .4-.1.6 0 .6.2 1.2.3 1.9.3 6 0 10-4 10-9.5S18 2 12 2z" />
-          </svg>
-        </button>
-
-        <div ref={notificationsRef} className="relative">
-          <button
-            onClick={() => {
-              setShowNotifications(!showNotifications);
-              setShowMenu(false);
-              setShowMessenger(false);
-            }}
-            className={`relative w-10 h-10 rounded-full flex items-center justify-center ${
-              showNotifications
-                ? "bg-[#e7f3ff] text-[#1877f2]"
-                : "bg-[#e4e6ea] hover:bg-[#d8dadf]"
-            }`}
-          >
-            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
-              <path d="M12 22a2 2 0 002-2h-4a2 2 0 002 2zm6-6v-5c0-3-1.6-5.5-4.5-6.3V4a1.5 1.5 0 10-3 0v.7C7.6 5.5 6 8 6 11v5l-2 2v1h16v-1l-2-2z" />
-            </svg>
-
-            {friendRequests.length > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#f02849] text-white text-[11px] font-bold flex items-center justify-center border-2 border-white">
-                {friendRequests.length}
-              </span>
-            )}
-          </button>
-
-          {showNotifications && (
-            <div className="absolute right-0 top-[48px] w-[380px] max-h-[calc(100vh-80px)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-[#ced0d4] z-50 p-3">
-              <h2 className="text-[24px] font-bold text-[#050505] mb-3">
-                Notifications
-              </h2>
-
-              {friendRequests.length > 0 && (
-                <div className="mb-2">
-                  <p className="text-[17px] font-bold text-[#050505] px-1 mb-2">
-                    Friend requests
-                  </p>
-
-                  <div className="flex flex-col gap-2">
-                    {friendRequests.map((request) => (
-                      <div
-                        key={request.id}
-                        className="flex gap-3 p-2 rounded-lg hover:bg-[#f0f2f5]"
-                      >
-                        <Link
-                          href={`/profile/${request.fromUid}`}
-                          onClick={() => setShowNotifications(false)}
-                          className="w-14 h-14 rounded-full overflow-hidden bg-gray-300 flex-shrink-0"
-                        >
-                          {request.fromPhoto ? (
-                            <Image
-                              src={request.fromPhoto}
-                              alt={request.fromName}
-                              width={56}
-                              height={56}
-                              className="w-full h-full object-cover"
-                              unoptimized
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[20px] font-bold">
-                              {request.fromName?.[0]?.toUpperCase() || "U"}
-                            </div>
-                          )}
-                        </Link>
-
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[15px] text-[#050505] leading-5">
-                            <Link
-                              href={`/profile/${request.fromUid}`}
-                              onClick={() => setShowNotifications(false)}
-                              className="font-semibold hover:underline"
-                            >
-                              {request.fromName}
-                            </Link>{" "}
-                            sent you a friend request.
-                          </p>
-
-                          <div className="flex gap-2 mt-2">
-                            <button
-                              onClick={() => handleAcceptRequest(request)}
-                              disabled={requestActionLoading === request.id}
-                              className="flex-1 h-9 rounded-lg bg-[#1877f2] hover:bg-[#166fe5] text-white text-[15px] font-semibold disabled:opacity-70"
-                            >
-                              {requestActionLoading === request.id
-                                ? "..."
-                                : "Confirm"}
-                            </button>
-
-                            <button
-                              onClick={() => handleDeleteRequest(request)}
-                              disabled={requestActionLoading === request.id}
-                              className="flex-1 h-9 rounded-lg bg-[#e4e6ea] hover:bg-[#d8dadf] text-[#050505] text-[15px] font-semibold disabled:opacity-70"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {friendRequests.length === 0 && (
-                <div className="py-8 text-center">
-                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-[#e4e6ea] flex items-center justify-center">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      className="w-8 h-8 text-[#65676b]"
-                    >
-                      <path d="M12 22a2 2 0 002-2h-4a2 2 0 002 2zm6-6v-5c0-3-1.6-5.5-4.5-6.3V4a1.5 1.5 0 10-3 0v.7C7.6 5.5 6 8 6 11v5l-2 2v1h16v-1l-2-2z" />
-                    </svg>
-                  </div>
-
-                  <p className="text-[15px] font-semibold text-[#65676b]">
-                    No new notifications
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <Link href="/profile">
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 hover:opacity-90">
-            {user?.photoURL ? (
-              <Image
-                src={user.photoURL}
-                alt="profile"
-                width={40}
-                height={40}
-                className="w-full h-full object-cover"
-                unoptimized
-              />
-            ) : (
-              <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                {user?.displayName?.[0]?.toUpperCase() || "U"}
-              </div>
-            )}
           </div>
-        </Link>
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }

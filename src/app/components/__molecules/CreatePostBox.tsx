@@ -12,7 +12,7 @@ interface CreatePostBoxProps {
 
 export default function CreatePostBox({ user, onOpen }: CreatePostBoxProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-[#ced0d4] px-4 py-3">
+    <div className="bg-white rounded-xl shadow-sm border border-[#ced0d4] px-4 py-3 md:h-[90px]  ">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 flex-shrink-0">
           {user?.photoURL ? (
@@ -32,7 +32,7 @@ export default function CreatePostBox({ user, onOpen }: CreatePostBoxProps) {
 
         <button
           onClick={onOpen}
-          className="flex-1 bg-[#f0f2f5] hover:bg-[#e4e6ea] transition-colors rounded-full px-4 py-2.5 text-left text-[#8a8d91] text-[15px]"
+          className="flex-1 bg-[#f0f2f5] hover:bg-[#e4e6ea] transition-colors rounded-full px-4 py-2.5 text-left text-[#8a8d91] text-[15px] md:h-17 md:rounded-2xl truncate"
         >
           What's on your mind, {user?.displayName?.split(" ")[0] || "you"}?
         </button>

@@ -14,6 +14,7 @@ import {
   updateDoc,
   arrayUnion,
   arrayRemove,
+  getDoc,
 } from "firebase/firestore";
 import { auth, db } from "@/firebase/firebase";
 
@@ -39,6 +40,12 @@ interface Comment {
   text: string;
   createdAt: any;
   likes: string[];
+}
+
+interface LikedUser {
+  uid: string;
+  name: string;
+  photoURL: string | null;
 }
 
 interface PostCardProps {
@@ -109,6 +116,48 @@ export default function PostCard({
     return () => unsub();
   }, [showComments, showCommentModal, post.id]);
 
+  const openLikesPopup = async () => {
+    if (!Array.isArray(post.likes) || post.likes.length === 0) return;
+
+    setShowLikesPopup(true);
+    setLikesLoading(true);
+
+    try {
+      const users = await Promise.all(
+        post.likes.map(async (uid) => {
+          const snap = await getDoc(doc(db, "users", uid));
+
+          if (snap.exists()) {
+            const data = snap.data();
+
+            const name =
+              `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
+              data.email ||
+              "User";
+
+            return {
+              uid,
+              name,
+              photoURL: data.photoURL || null,
+            };
+          }
+
+          return {
+            uid,
+            name: "User",
+            photoURL: null,
+          };
+        }),
+      );
+
+      setLikedUsers(users);
+    } catch (err) {
+      console.error("Likes popup error:", err);
+    } finally {
+      setLikesLoading(false);
+    }
+  };
+
   const handleLike = async () => {
     if (!userId) return;
 
@@ -137,6 +186,10 @@ export default function PostCard({
     setShowCommentModal(true);
     setTimeout(() => commentInputRef.current?.focus(), 100);
   };
+
+  const [showLikesPopup, setShowLikesPopup] = useState(false);
+  const [likedUsers, setLikedUsers] = useState<LikedUser[]>([]);
+  const [likesLoading, setLikesLoading] = useState(false);
 
   const handleDelete = async () => {
     try {
@@ -329,9 +382,21 @@ export default function PostCard({
         )}
 
         {(likesCount > 0 || comments.length > 0) && (
-          <div className="flex items-center justify-between px-4 py-2 text-[15px] text-[#8a8d91]">
+          <div className="flex items-center justify-between px-4 py-2 text-[15px] text-[#8a8d91] ">
             <div>
-              {likesCount > 0 && <span>👍 {likesCount.toLocaleString()}</span>}
+              {likesCount > 0 && (
+                <button
+                  onClick={openLikesPopup}
+                  className="flex items-center gap-1 "
+                >
+                  <span className="w-[18px] h-[18px] rounded-full bg-[#1877f2] flex items-center justify-center text-[10px]">
+                    👍
+                  </span>
+                  <span className="hover:underline cursor-pointer">
+                    {likesCount.toLocaleString()}
+                  </span>
+                </button>
+              )}{" "}
             </div>
 
             {comments.length > 0 && (
@@ -535,7 +600,7 @@ export default function PostCard({
                 )}
               </div>
 
-              <div className="flex-1 bg-[#f0f2f5] rounded-2xl px-4 py-2">
+              <div className="relative flex-1 bg-[#f0f2f5] rounded-2xl px-4 py-2 pr-12">
                 <input
                   ref={commentInputRef}
                   value={commentText}
@@ -549,18 +614,78 @@ export default function PostCard({
                   className="w-full bg-transparent outline-none text-[15px]"
                 />
 
-                <div className="flex items-center justify-between mt-2">
-                  {commentText.trim() && (
-                    <button
-                      onClick={handleSubmitComment}
-                      disabled={submitting}
-                      className="text-[#1877f2] font-bold disabled:opacity-50"
-                    >
-                      ➤
-                    </button>
-                  )}
-                </div>
+                {commentText.trim() && (
+                  <button
+                    onClick={handleSubmitComment}
+                    disabled={submitting}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1877f2] font-bold disabled:opacity-50"
+                  >
+                    ➤
+                  </button>
+                )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showLikesPopup && (
+        <div
+          className="fixed inset-0 z-50 bg-white/70 flex items-center justify-center px-4"
+          onClick={() => setShowLikesPopup(false)}
+        >
+          <div
+            className="w-full max-w-[500px] max-h-[80vh] bg-white rounded-xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative h-[60px] flex items-center justify-center border-b border-[#e4e6ea]">
+              <h2 className="text-[20px] font-bold text-[#050505]">Likes</h2>
+
+              <button
+                onClick={() => setShowLikesPopup(false)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] flex items-center justify-center text-[30px] leading-none text-[#65676b]"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-3 overflow-y-auto max-h-[calc(80vh-60px)]">
+              {likesLoading ? (
+                <div className="py-6 text-center text-[15px] text-[#65676b]">
+                  Loading...
+                </div>
+              ) : likedUsers.length === 0 ? (
+                <div className="py-6 text-center text-[15px] text-[#65676b]">
+                  No likes yet.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {likedUsers.map((user) => (
+                    <a
+                      key={user.uid}
+                      href={`/profile/${user.uid}`}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5]"
+                    >
+                      <div className="w-11 h-11 rounded-full overflow-hidden bg-gray-300 flex-shrink-0">
+                        {user.photoURL ? (
+                          <img
+                            src={user.photoURL}
+                            alt={user.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
+                            {user.name[0]?.toUpperCase() || "U"}
+                          </div>
+                        )}
+                      </div>
+
+                      <span className="text-[15px] font-semibold text-[#050505]">
+                        {user.name}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -76,12 +76,13 @@ export default function ProfilePopup({ onLogin }: Props) {
               type="password"
               placeholder="Password"
               {...register("password")}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit(onSubmit)()}
               className={`w-full h-[50px] px-4 rounded-xl border outline-none transition-all duration-150
-                ${
-                  errors.password
-                    ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200"
-                    : "border-[#ccd0d5] hover:border-black focus:border-[#1877F2] focus:ring-2 focus:ring-[#e7f3ff]"
-                }`}
+    ${
+      errors.password
+        ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+        : "border-[#ccd0d5] hover:border-black focus:border-[#1877F2] focus:ring-2 focus:ring-[#e7f3ff]"
+    }`}
             />
             {errors.password && (
               <p className="text-red-500 text-[13px] mt-1">

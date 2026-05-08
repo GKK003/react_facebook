@@ -164,6 +164,11 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
   const searchRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const searchPopupInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const messengerRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const messengerButtonRef = useRef<HTMLButtonElement>(null);
+  const notificationsButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
@@ -211,13 +216,35 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+
+      if (searchRef.current && !searchRef.current.contains(target)) {
         setShowResults(false);
       }
 
       if (
+        menuRef.current &&
+        !menuRef.current.contains(target) &&
+        menuButtonRef.current &&
+        !menuButtonRef.current.contains(target)
+      ) {
+        setShowMenu(false);
+      }
+
+      if (
+        messengerRef.current &&
+        !messengerRef.current.contains(target) &&
+        messengerButtonRef.current &&
+        !messengerButtonRef.current.contains(target)
+      ) {
+        setShowMessenger(false);
+      }
+
+      if (
         notificationsRef.current &&
-        !notificationsRef.current.contains(e.target as Node)
+        !notificationsRef.current.contains(target) &&
+        notificationsButtonRef.current &&
+        !notificationsButtonRef.current.contains(target)
       ) {
         setShowNotifications(false);
       }
@@ -426,8 +453,9 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
 
         <div className="flex items-center gap-2 ml-auto max-md:gap-1">
           <button
+            ref={menuButtonRef}
             onClick={() => {
-              setShowMenu(!showMenu);
+              setShowMenu((prev) => !prev);
               setShowMessenger(false);
               setShowNotifications(false);
             }}
@@ -439,8 +467,9 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
           </button>
 
           <button
+            ref={messengerButtonRef}
             onClick={() => {
-              setShowMessenger(!showMessenger);
+              setShowMessenger((prev) => !prev);
               setShowMenu(false);
               setShowNotifications(false);
             }}
@@ -452,8 +481,9 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
           </button>
 
           <button
+            ref={notificationsButtonRef}
             onClick={() => {
-              setShowNotifications(!showNotifications);
+              setShowNotifications((prev) => !prev);
               setShowMenu(false);
               setShowMessenger(false);
             }}
@@ -491,40 +521,358 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
         </div>
 
         {showMenu && (
-          <div className="absolute right-4 top-[56px] w-[360px] max-w-[calc(100vw-16px)] bg-white rounded-lg shadow-xl border border-[#ced0d4] p-4">
+          <div
+            className="absolute right-4 top-[56px] w-[608px] max-w-[calc(100vw-16px)] h-[calc(100vh-72px)] bg-[#f0f2f5] rounded-lg shadow-[0_12px_28px_rgba(0,0,0,0.25)] z-50 overflow-y-auto p-4 gg:ml-4"
+            ref={menuRef}
+          >
             <h2 className="text-[24px] font-bold text-[#050505] mb-3">Menu</h2>
 
-            <Link
-              href="/profile"
-              onClick={() => setShowMenu(false)}
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5]"
-            >
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300">
-                {user?.photoURL ? (
-                  <Image
-                    src={user.photoURL}
-                    alt="profile"
-                    width={40}
-                    height={40}
-                    className="w-full h-full object-cover"
-                    unoptimized
+            <div className="grid grid-cols-[360px_200px] gap-4 lg:grid-cols-1 sm:m-2.5">
+              <div className="bg-white rounded-xl shadow-sm p-4">
+                <div className="h-[40px] bg-[#f0f2f5] rounded-full flex items-center gap-2 px-3 mb-5">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="w-5 h-5 text-[#65676b]"
+                  >
+                    <path d="M15.5 14h-.79l-.28-.27A6.5 6.5 0 109.5 16c1.6 0 3-.6 4.2-1.6l.3.3v.8l5 5L20.5 19l-5-5z" />
+                  </svg>
+
+                  <input
+                    type="text"
+                    placeholder="Search menu"
+                    className="w-full bg-transparent outline-none text-[15px] text-[#050505] placeholder-[#65676b]"
                   />
-                ) : (
-                  <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                    {user?.displayName?.[0]?.toUpperCase() || "U"}
-                  </div>
-                )}
+                </div>
+
+                <div className="pb-4 border-b border-[#dadde1]">
+                  <h3 className="text-[17px] font-bold text-[#050505] mb-2">
+                    Social
+                  </h3>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#ff4b6e] to-[#e4e6eb] flex items-center justify-center text-white text-[18px]">
+                      ★
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Events
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        Organise or find events and other things to do online
+                        and nearby.
+                      </p>
+                    </div>
+                  </button>
+
+                  <Link
+                    href="/friends"
+                    onClick={() => setShowMenu(false)}
+                    className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left"
+                  >
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#5bd6ff] to-[#1877f2] flex items-center justify-center text-white text-[18px]">
+                      👥
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Friends
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        Search for friends or people you may know.
+                      </p>
+                    </div>
+                  </Link>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#63d6ff] to-[#1877f2] flex items-center justify-center text-white text-[18px]">
+                      ●
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Groups
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        Connect with people who share your interests.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#dff5ff] to-[#1877f2] flex items-center justify-center text-white text-[18px]">
+                      ▬
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        News Feed
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        See relevant posts from people and Pages that you
+                        follow.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#dff5ff] to-[#1877f2] flex items-center justify-center text-white text-[18px]">
+                      ◉
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Feeds
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        See the most recent posts from your friends, groups,
+                        Pages and more.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#ff7b32] to-[#1877f2] flex items-center justify-center text-white text-[18px]">
+                      ⚑
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Pages
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        Discover and connect with businesses on Facebook.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+
+                <div className="py-4 border-b border-[#dadde1]">
+                  <h3 className="text-[17px] font-bold text-[#050505] mb-2">
+                    Entertainment
+                  </h3>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#25c4ff] to-[#1877f2] flex items-center justify-center text-white text-[18px]">
+                      ▰
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Gaming video
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        Watch and connect with your favourite games and
+                        streamers.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#25c4ff] to-[#1877f2] flex items-center justify-center text-white text-[18px]">
+                      +
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Play games
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        Play your favourite games.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#ff908b] to-[#f5533d] flex items-center justify-center text-white text-[18px]">
+                      ▶
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Reels
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        A Reels destination personalised to your interests and
+                        connections.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+
+                <div className="py-4 border-b border-[#dadde1]">
+                  <h3 className="text-[17px] font-bold text-[#050505] mb-2">
+                    Shopping
+                  </h3>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#1d4ed8] to-[#0f172a] flex items-center justify-center text-white text-[18px]">
+                      ◆
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Orders and payments
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        A seamless, secure way to pay in the apps you already
+                        use.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#40e0d0] to-[#1877f2] flex items-center justify-center text-white text-[18px]">
+                      ▬
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Marketplace
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        Buy and sell in your community.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+
+                <div className="py-4 border-b border-[#dadde1]">
+                  <h3 className="text-[17px] font-bold text-[#050505] mb-2">
+                    Personal
+                  </h3>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#65d6ff] to-[#1877f2] flex items-center justify-center text-white text-[18px]">
+                      ▣
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Recent ad activity
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        See all of the ads you've interacted with on Facebook.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#6ee7f9] to-[#1877f2] flex items-center justify-center text-white text-[18px]">
+                      ⟳
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Memories
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        Browse your old photos, videos and posts on Facebook.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#ec4899] to-[#8b5cf6] flex items-center justify-center text-white text-[18px]">
+                      ▌
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Saved
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        Find posts, photos and videos that you've saved for
+                        later.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+
+                <div className="py-4 border-b border-[#dadde1]">
+                  <h3 className="text-[17px] font-bold text-[#050505] mb-2">
+                    Professional
+                  </h3>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#60a5fa] to-[#1877f2] flex items-center justify-center text-white text-[18px]">
+                      ▥
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Ads Manager
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        Create, manage and track the performance of your ads.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+
+                <div className="pt-4">
+                  <h3 className="text-[17px] font-bold text-[#050505] mb-2">
+                    More from Meta
+                  </h3>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#a855f7] to-[#6366f1] flex items-center justify-center text-white text-[18px]">
+                      ✣
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Meta AI
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        Ask questions, brainstorm ideas, create any image you
+                        can imagine and more.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                    <div className="w-9 h-9 rounded-md bg-gradient-to-b from-[#60a5fa] to-[#2563eb] flex items-center justify-center text-white text-[18px]">
+                      ✦
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-bold text-[#050505]">
+                        Chat with AIs
+                      </p>
+                      <p className="text-[13px] text-[#65676b] leading-[16px]">
+                        Create and discover AIs for fun conversations or help
+                        with specific topics.
+                      </p>
+                    </div>
+                  </button>
+                </div>
               </div>
 
-              <span className="text-[15px] font-semibold text-[#050505]">
-                {user?.displayName || "User"}
-              </span>
-            </Link>
+              <div className="bg-white rounded-xl shadow-sm p-3 h-fit sticky top-0 lg:static">
+                <h3 className="text-[20px] font-bold text-[#050505] mb-2">
+                  Create
+                </h3>
+
+                {[
+                  ["✎", "Post"],
+                  ["▰", "Story"],
+                  ["▶", "Reel"],
+                  ["★", "Life update"],
+                  ["⚑", "Page"],
+                  ["📣", "Ad"],
+                  ["●", "Group"],
+                  ["⊞", "Event"],
+                  ["◉", "Marketplace Listing"],
+                ].map(([icon, label], index) => (
+                  <div key={label}>
+                    {index === 4 && <hr className="border-[#dadde1] my-2" />}
+
+                    <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] text-left">
+                      <div className="w-9 h-9 rounded-full bg-[#e4e6eb] flex items-center justify-center text-[#050505] text-[18px]">
+                        {icon}
+                      </div>
+
+                      <span className="text-[15px] font-bold text-[#050505]">
+                        {label}
+                      </span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
         {showMessenger && (
-          <div className="absolute right-4 top-[56px] w-[360px] max-w-[calc(100vw-16px)] bg-white rounded-lg shadow-xl border border-[#ced0d4] p-4">
+          <div
+            className="absolute right-4 top-[56px] w-[360px] max-w-[calc(100vw-16px)] bg-white rounded-lg shadow-xl border border-[#ced0d4] p-4 gg:ml-5 ss:w-[300px]"
+            ref={messengerRef}
+          >
             <h2 className="text-[24px] font-bold text-[#050505] mb-3">Chats</h2>
 
             <div className="text-[15px] text-[#65676b] py-4">No chats yet.</div>
@@ -534,7 +882,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
         {showNotifications && (
           <div
             ref={notificationsRef}
-            className="absolute right-4 top-[56px] w-[380px] max-w-[calc(100vw-16px)] bg-white rounded-lg shadow-xl border border-[#ced0d4] p-4"
+            className="absolute right-4 top-[56px] w-[380px] max-w-[calc(100vw-16px)] bg-white rounded-lg shadow-xl border border-[#ced0d4] p-4 gg:ml-5 ss:w-[300px]"
           >
             <h2 className="text-[24px] font-bold text-[#050505] mb-3">
               Notifications

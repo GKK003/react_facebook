@@ -80,7 +80,7 @@ export default function CreatePostPopup({
 
               <button
                 type="button"
-                className="mt-1 h-[24px] px-2 rounded-md bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center gap-1 text-[13px] font-semibold text-[#050505] dark:text-[#e4e6eb]"
+                className="mt-1 h-[24px] px-2 rounded-md bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center gap-1 text-[13px] cursor-pointer font-semibold text-[#050505] dark:text-[#e4e6eb]"
               >
                 <img
                   src="https://static.xx.fbcdn.net/rsrc.php/yh/r/-V__UHZHkz0.webp?_nc_eui2=AeFpHJ2y6RmPb4-qKNiMZR1a9KzMkQPrWyn0rMyRA-tbKcqogbj1D9JjcRhLnvEIYxHnuk04DXOdZYgdmhgOF7U1"
@@ -92,7 +92,7 @@ export default function CreatePostPopup({
                 <svg
                   viewBox="0 0 20 20"
                   fill="currentColor"
-                  className="w-3.5 h-3.5"
+                  className="w-3.5 h-3.5 "
                 >
                   <path d="M5.5 7.5L10 12l4.5-4.5h-9z" />
                 </svg>
@@ -149,7 +149,7 @@ export default function CreatePostPopup({
                 alt=""
                 width={38}
                 height={38}
-                className="h-[38px] w-[38px]"
+                className="h-[38px] w-[38px] cursor-pointer"
               />
             </button>
 
@@ -161,7 +161,7 @@ export default function CreatePostPopup({
                 data-visualcompletion="css-img"
                 aria-label="Emoji"
                 role="img"
-                className="inline-block h-6 w-6 bg-no-repeat"
+                className="inline-block h-6 w-6 bg-no-repeat cursor-pointer"
                 style={{
                   backgroundImage:
                     'url("https://static.xx.fbcdn.net/rsrc.php/yU/r/7-A4siEWt6h.webp?_nc_eui2=AeHnnEPqcLjHprBUJ8t1o2h-UIdaYtQI3JpQh1pi1AjcmilivPILWWw29H42V5q1c7XKf6n3zhSsD-0jpast-dGv")',
@@ -194,7 +194,7 @@ export default function CreatePostPopup({
                 />
               </label>
 
-              <button className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center">
+              <button className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer">
                 <img
                   src="https://static.xx.fbcdn.net/rsrc.php/yO/r/UnRgJelt7Mg.webp?_nc_eui2=AeH3mMt4LYRscGUGKvgZCsIBKt0A9dA7yJwq3QD10DvInBNquo9K_WwC0K1twrWSXreEcFCtUIJTRs0W6Emac0Lz"
                   alt=""
@@ -203,7 +203,7 @@ export default function CreatePostPopup({
                 />
               </button>
 
-              <button className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center">
+              <button className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer">
                 <img
                   src="https://static.xx.fbcdn.net/rsrc.php/ya/r/XlpCJi9w2HF.webp?_nc_eui2=AeFR_6-Dj0VGhlXhb726y36TwIB16X8qm_nAgHXpfyqb-SfUGHSXRttsYM0-5XyRnZeMi249piBh_p9hoILb97g0"
                   alt=""
@@ -212,7 +212,7 @@ export default function CreatePostPopup({
                 />
               </button>
 
-              <button className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center">
+              <button className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer">
                 <img
                   src="https://static.xx.fbcdn.net/rsrc.php/yC/r/glLNpLPayUm.webp?_nc_eui2=AeEMvF9L-7Jlf_owFIM6KkbLgn8XdsByLzuCfxd2wHIvOyfg0x9i4tBzEoo2L8kjgnqla5IFgpX1rxAl3nmlLctF"
                   alt=""
@@ -221,7 +221,7 @@ export default function CreatePostPopup({
                 />
               </button>
 
-              <button className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center ss:hidden">
+              <button className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center ss:hidden cursor-pointer">
                 <img
                   src="https://static.xx.fbcdn.net/rsrc.php/y1/r/pfuEaSjPXaI.webp?_nc_eui2=AeGyXLDFAYbp3nZBlmqYWLQbThQzZWtrp9hOFDNla2un2PIp8NEUHpv7utEFL54U3rI6NZ0e_-z44zC0PtOyUMdq"
                   alt=""
@@ -230,7 +230,7 @@ export default function CreatePostPopup({
                 />
               </button>
 
-              <button className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center sm:w-5 sm:h-5 gg:hidden">
+              <button className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center sm:w-5 sm:h-5 gg:hidden cursor-pointer">
                 <i
                   data-visualcompletion="css-img"
                   className="inline-block w-6 h-6 bg-no-repeat"

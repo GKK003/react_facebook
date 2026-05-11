@@ -659,7 +659,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
               setShowNotifications(false);
               setShowProfileMenu(false);
             }}
-            className="w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] dark:bg-[#18191a] dark:hover:bg-[#3a3b3c] flex items-center justify-center "
+            className="w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] dark:bg-[#18191a] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer "
           >
             {RIGHT_ACTION_ICONS.menu}
           </button>
@@ -672,7 +672,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
               setShowNotifications(false);
               setShowProfileMenu(false);
             }}
-            className="w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] dark:bg-[#18191a] dark:hover:bg-[#3a3b3c] flex items-center justify-center"
+            className="w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] dark:bg-[#18191a] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer"
           >
             {RIGHT_ACTION_ICONS.messenger}
           </button>
@@ -685,7 +685,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
               setShowMessenger(false);
               setShowProfileMenu(false);
             }}
-            className="relative w-10 h-10 rounded-full bg-[#e4e6ea] dark:bg-[#18191a] hover:bg-[#d8dadf]  dark:hover:bg-[#3a3b3c] flex items-center justify-center"
+            className="relative w-10 h-10 rounded-full bg-[#e4e6ea] dark:bg-[#18191a] hover:bg-[#d8dadf]  dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer"
           >
             {RIGHT_ACTION_ICONS.notifications}
 
@@ -706,7 +706,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                   setShowMessenger(false);
                   setShowNotifications(false);
                 }}
-                className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 hover:opacity-90 mt-[5px]"
+                className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 hover:opacity-90 mt-[5px] cursor-pointer"
               >
                 {user.photoURL ? (
                   <Image
@@ -760,7 +760,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
 
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] text-left"
+                    className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] text-left cursor-pointer"
                   >
                     <div className="w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] flex items-center justify-center">
                       <svg
@@ -843,7 +843,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       </svg>
                     </div>
 
-                    <span className="text-[15px] font-semibold text-[#050505]  dark:text-[#e4e6eb]">
+                    <span className="text-[15px] font-semibold text-[#050505]  dark:text-[#e4e6eb] cursor-pointer">
                       {darkMode ? "Light mode" : "Dark mode"}
                     </span>
                   </button>
@@ -903,8 +903,8 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
-                      <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
+                    <div className="cursor-pointer">
+                      <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb] ">
                         Events
                       </p>
                       <p className="text-[13px] text-[#65676b] dark:text-[#b0b3b8] leading-[16px]">
@@ -929,7 +929,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Friends
                       </p>
@@ -950,7 +950,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Groups
                       </p>
@@ -971,7 +971,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         News Feed
                       </p>
@@ -993,7 +993,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Feeds
                       </p>
@@ -1015,7 +1015,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Pages
                       </p>
@@ -1042,7 +1042,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Gaming video
                       </p>
@@ -1064,7 +1064,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Play games
                       </p>
@@ -1085,7 +1085,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Reels
                       </p>
@@ -1113,7 +1113,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Orders and payments
                       </p>
@@ -1135,7 +1135,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Marketplace
                       </p>
@@ -1162,7 +1162,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Recent ad activity
                       </p>
@@ -1183,7 +1183,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Memories
                       </p>
@@ -1204,7 +1204,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Saved
                       </p>
@@ -1232,7 +1232,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Ads Manager
                       </p>
@@ -1259,7 +1259,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Meta AI
                       </p>
@@ -1281,7 +1281,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       className="h-9 w-9"
                     />
 
-                    <div>
+                    <div className="cursor-pointer">
                       <p className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         Chat with AIs
                       </p>
@@ -1305,12 +1305,12 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       <hr className="border-[#dadde1] dark:border-[#3a3b3c] my-2" />
                     )}
 
-                    <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] text-left">
-                      <div className="w-9 h-9 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] flex items-center justify-center text-[#050505] dark:text-[#e4e6eb]">
+                    <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] text-left cursor-pointer ">
+                      <div className="w-9 h-9 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] flex items-center justify-center text-[#050505] dark:text-[#e4e6eb] ">
                         {item.icon}
                       </div>
 
-                      <span className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb]">
+                      <span className="text-[15px] font-bold text-[#050505] dark:text-[#e4e6eb] ">
                         {item.label}
                       </span>
                     </button>

@@ -139,7 +139,7 @@ export default function RightSidebar() {
           </span>
 
           <div className="flex items-center gap-1">
-            <button className="w-9 h-9 rounded-full hover:bg-[#f2f2f2] dark:hover:bg-[#3a3b3c] flex items-center justify-center transition-colors">
+            <button className="w-9 h-9 rounded-full hover:bg-[#e4e6eb] dark:hover:bg-[#3a3b3c] flex items-center justify-center transition-colors cursor-pointer">
               <svg
                 viewBox="0 0 16 16"
                 width="16"
@@ -171,7 +171,7 @@ export default function RightSidebar() {
               </svg>
             </button>
 
-            <button className="w-9 h-9 rounded-full hover:bg-[#f2f2f2] dark:hover:bg-[#3a3b3c] flex items-center justify-center transition-colors">
+            <button className="w-9 h-9 rounded-full hover:bg-[#e4e6eb] dark:hover:bg-[#3a3b3c] flex items-center justify-center transition-colors cursor-pointer">
               <svg
                 viewBox="0 0 20 20"
                 width="20"
@@ -198,7 +198,7 @@ export default function RightSidebar() {
               <Link
                 key={contact.uid}
                 href={`/profile/${contact.uid}`}
-                className="flex items-center gap-3 w-full px-2 py-2 rounded-lg hover:bg-[#f2f2f2] dark:hover:bg-[#3a3b3c] transition-colors"
+                className="flex items-center gap-3 w-full px-2 py-2 rounded-lg  hover:bg-[#e4e6eb] dark:hover:bg-[#3a3b3c] transition-colors"
               >
                 <div className="relative flex-shrink-0">
                   <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c]">

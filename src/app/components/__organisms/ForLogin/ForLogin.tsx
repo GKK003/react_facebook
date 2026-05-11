@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -11,6 +11,7 @@ import { doc, getDoc } from "firebase/firestore";
 import Fb from "@/assets/images/fblogo.png";
 import Collage from "@/assets/images/loginimage.webp";
 import Meta from "@/assets/images/Metalogo.png";
+import { onAuthStateChanged } from "firebase/auth";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { LoginFormValues } from "@/schemas/loginSchema";
@@ -22,6 +23,7 @@ import Footer from "../footer/Footer";
 
 export default function ForLogin() {
   const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   const {
     showProfiles,
@@ -35,6 +37,19 @@ export default function ForLogin() {
   useEffect(() => {
     loadProfiles();
   }, [loadProfiles]);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        router.replace("/feed");
+        return;
+      }
+
+      setCheckingAuth(false);
+    });
+
+    return () => unsub();
+  }, [router]);
 
   const getUserProfileData = async (uid: string, email: string | null) => {
     const docRef = doc(db, "users", uid);
@@ -124,6 +139,14 @@ export default function ForLogin() {
       alert(error.message);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-[#1877f2] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <>

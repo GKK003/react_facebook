@@ -13,9 +13,11 @@ body {
 @theme {
   --breakpoint-*: initial;
 }
+@variant dark (&:where(.dark, .dark *));
 
 @custom-variant 2xl (@media (max-width: 1535px));
 @custom-variant xl (@media (max-width: 1359px));
+@custom-variant xx (@media (max-width: 1290px));
 @custom-variant lg (@media (max-width: 1100px));
 @custom-variant md (@media (max-width: 800px));
 @custom-variant sm (@media (max-width: 630px));

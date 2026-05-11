@@ -56,13 +56,15 @@ function CircleIcon({ type, active }: { type: string; active?: boolean }) {
   return (
     <div
       className={`w-9 h-9 rounded-full flex items-center justify-center ${
-        active ? "bg-[#1877f2]" : "bg-[#e4e6eb]"
+        active ? "bg-[#1877f2]" : "bg-[#e4e6eb] dark:bg-[#3a3b3c]"
       }`}
     >
       <svg
         viewBox="0 0 24 24"
-        fill={active ? "white" : "#050505"}
-        className="w-6 h-6"
+        fill="currentColor"
+        className={`w-6 h-6 ${
+          active ? "text-white" : "text-[#050505] dark:text-[#e4e6eb]"
+        }`}
       >
         {type === "friends" && (
           <path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zM8 11c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
@@ -86,23 +88,25 @@ function CircleIcon({ type, active }: { type: string; active?: boolean }) {
 
 function FriendsSidebar() {
   return (
-    <div className="fixed left-0 top-[56px] bottom-0 w-[360px] bg-white shadow-sm border-r border-[#dddfe2] p-4 overflow-y-auto lg:relative lg:top-0 lg:bottom-auto lg:w-full lg:border-r-0 lg:border-b lg:shadow-none">
-      {" "}
+    <div className="fixed left-0 top-[56px] bottom-0 w-[360px] bg-white dark:bg-[#242526] shadow-sm border-r border-[#dddfe2] dark:border-[#3a3b3c] p-4 overflow-y-auto lg:relative lg:top-0 lg:bottom-auto lg:w-full lg:border-r-0 lg:border-b lg:shadow-none">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-[28px] font-bold text-[#050505]">Friends</h1>
+        <h1 className="text-[28px] font-bold text-[#050505] dark:text-[#e4e6eb]">
+          Friends
+        </h1>
 
-        <button className="w-10 h-10 rounded-full bg-[#e4e6eb] hover:bg-[#d8dadf] flex items-center justify-center">
+        <button className="w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center text-[#050505] dark:text-[#e4e6eb]">
           ⚙
         </button>
       </div>
+
       <div className="flex flex-col gap-1">
         <Link
           href="/friends"
-          className="h-[56px] rounded-lg flex items-center justify-between px-2 bg-[#f0f2f5]"
+          className="h-[56px] rounded-lg flex items-center justify-between px-2 bg-[#f0f2f5] dark:bg-[#3a3b3c]"
         >
           <div className="flex items-center gap-3">
             <CircleIcon type="friends" active />
-            <span className="text-[17px] font-semibold text-[#050505]">
+            <span className="text-[17px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
               Home
             </span>
           </div>
@@ -110,44 +114,50 @@ function FriendsSidebar() {
 
         <Link
           href="/friends/requests"
-          className="h-[56px] rounded-lg flex items-center justify-between px-2 hover:bg-[#f0f2f5]"
+          className="h-[56px] rounded-lg flex items-center justify-between px-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c]"
         >
           <div className="flex items-center gap-3">
             <CircleIcon type="request" />
-            <span className="text-[17px] font-semibold text-[#050505]">
+            <span className="text-[17px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
               Friend requests
             </span>
           </div>
-          <span className="text-[24px] text-[#65676b]">›</span>
+          <span className="text-[24px] text-[#65676b] dark:text-[#b0b3b8]">
+            ›
+          </span>
         </Link>
 
-        <button className="h-[56px] rounded-lg flex items-center justify-between px-2 hover:bg-[#f0f2f5]">
+        <button className="h-[56px] rounded-lg flex items-center justify-between px-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c]">
           <div className="flex items-center gap-3">
             <CircleIcon type="request" />
-            <span className="text-[17px] font-semibold text-[#050505]">
+            <span className="text-[17px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
               Suggestions
             </span>
           </div>
-          <span className="text-[24px] text-[#65676b]">›</span>
+          <span className="text-[24px] text-[#65676b] dark:text-[#b0b3b8]">
+            ›
+          </span>
         </button>
 
         <Link
           href="/friends/all"
-          className="h-[56px] rounded-lg flex items-center justify-between px-2 hover:bg-[#f0f2f5]"
+          className="h-[56px] rounded-lg flex items-center justify-between px-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c]"
         >
           <div className="flex items-center gap-3">
             <CircleIcon type="all" />
-            <span className="text-[17px] font-semibold text-[#050505]">
+            <span className="text-[17px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
               All friends
             </span>
           </div>
-          <span className="text-[24px] text-[#65676b]">›</span>
+          <span className="text-[24px] text-[#65676b] dark:text-[#b0b3b8]">
+            ›
+          </span>
         </Link>
 
-        <button className="h-[56px] rounded-lg flex items-center justify-between px-2 hover:bg-[#f0f2f5]">
+        <button className="h-[56px] rounded-lg flex items-center justify-between px-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c]">
           <div className="flex items-center gap-3">
             <CircleIcon type="gift" />
-            <span className="text-[17px] font-semibold text-[#050505]">
+            <span className="text-[17px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
               Birthdays
             </span>
           </div>
@@ -169,10 +179,9 @@ function RequestCard({
   loading: boolean;
 }) {
   return (
-    <div className="w-full bg-white rounded-lg border border-[#ced0d4] shadow-sm overflow-hidden">
-      {" "}
+    <div className="w-full bg-white dark:bg-[#242526] rounded-lg border border-[#ced0d4] dark:border-[#3a3b3c] shadow-sm overflow-hidden">
       <Link href={`/profile/${request.fromUid}`}>
-        <div className="h-[248px] bg-[#e4e6eb]">
+        <div className="h-[248px] bg-[#e4e6eb] dark:bg-[#3a3b3c]">
           {request.fromPhoto ? (
             <Image
               src={request.fromPhoto}
@@ -189,15 +198,16 @@ function RequestCard({
           )}
         </div>
       </Link>
+
       <div className="p-3">
         <Link
           href={`/profile/${request.fromUid}`}
-          className="block text-[17px] font-bold text-[#050505] truncate hover:underline"
+          className="block text-[17px] font-bold text-[#050505] dark:text-[#e4e6eb] truncate hover:underline"
         >
           {request.fromName}
         </Link>
 
-        <p className="text-[15px] text-[#65676b] mt-1 truncate">
+        <p className="text-[15px] text-[#65676b] dark:text-[#b0b3b8] mt-1 truncate">
           1 mutual friend
         </p>
 
@@ -212,7 +222,7 @@ function RequestCard({
         <button
           onClick={() => onDelete(request)}
           disabled={loading}
-          className="w-full h-[40px] mt-2 bg-[#e4e6eb] hover:bg-[#d8dadf] text-[#050505] rounded-lg text-[15px] font-semibold disabled:opacity-70"
+          className="w-full h-[40px] mt-2 bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] text-[#050505] dark:text-[#e4e6eb] rounded-lg text-[15px] font-semibold disabled:opacity-70"
         >
           Delete
         </button>
@@ -225,7 +235,7 @@ function FriendListItem({ friend }: { friend: FriendCard }) {
   return (
     <Link
       href={`/profile/${friend.uid}`}
-      className="bg-white rounded-lg border border-[#ced0d4] p-3 flex items-center gap-3 hover:bg-[#f0f2f5] w-full"
+      className="bg-white dark:bg-[#242526] rounded-lg border border-[#ced0d4] dark:border-[#3a3b3c] p-3 flex items-center gap-3 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] w-full"
     >
       <div className="w-16 h-16 rounded-full overflow-hidden bg-[#1877f2] flex items-center justify-center text-white text-[26px] font-bold flex-shrink-0">
         {friend.photoURL ? (
@@ -243,10 +253,10 @@ function FriendListItem({ friend }: { friend: FriendCard }) {
       </div>
 
       <div className="min-w-0">
-        <p className="text-[17px] font-bold text-[#050505] truncate">
+        <p className="text-[17px] font-bold text-[#050505] dark:text-[#e4e6eb] truncate">
           {friend.name}
         </p>
-        <p className="text-[14px] text-[#65676b]">Friend</p>
+        <p className="text-[14px] text-[#65676b] dark:text-[#b0b3b8]">Friend</p>
       </div>
     </Link>
   );
@@ -417,17 +427,16 @@ export default function Friends() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5]">
+    <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#18191a]">
       <Navbar user={navUser} activePage="home" />
 
       <div className="pt-[56px] flex lg:flex-col">
-        {" "}
         <FriendsSidebar />
+
         <div className="ml-[360px] flex-1 px-10 py-8 lg:ml-0 lg:px-4 lg:py-5">
-          {" "}
           <div className="mb-10">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[24px] font-bold text-[#050505]">
+              <h2 className="text-[24px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                 Friend requests
               </h2>
 
@@ -440,12 +449,11 @@ export default function Friends() {
             </div>
 
             {incomingRequests.length === 0 ? (
-              <div className="bg-white rounded-lg border border-[#ced0d4] p-6 text-[#65676b] text-[16px]">
+              <div className="bg-white dark:bg-[#242526] rounded-lg border border-[#ced0d4] dark:border-[#3a3b3c] p-6 text-[#65676b] dark:text-[#b0b3b8] text-[16px]">
                 No friend requests.
               </div>
             ) : (
               <div className="grid grid-cols-4 gap-3 2xl:grid-cols-3 xl:grid-cols-2 sm:grid-cols-1">
-                {" "}
                 {incomingRequests.slice(0, 8).map((request) => (
                   <RequestCard
                     key={request.id}
@@ -458,9 +466,10 @@ export default function Friends() {
               </div>
             )}
           </div>
+
           <div>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[24px] font-bold text-[#050505]">
+              <h2 className="text-[24px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                 All friends
               </h2>
 
@@ -473,12 +482,11 @@ export default function Friends() {
             </div>
 
             {allFriends.length === 0 ? (
-              <div className="bg-white rounded-lg border border-[#ced0d4] p-6 text-[#65676b] text-[16px]">
+              <div className="bg-white dark:bg-[#242526] rounded-lg border border-[#ced0d4] dark:border-[#3a3b3c] p-6 text-[#65676b] dark:text-[#b0b3b8] text-[16px]">
                 No friends yet. Confirm friend requests to add friends here.
               </div>
             ) : (
               <div className="grid grid-cols-4 gap-3 2xl:grid-cols-3 xl:grid-cols-2 sm:grid-cols-1">
-                {" "}
                 {allFriends.slice(0, 12).map((friend) => (
                   <FriendListItem key={friend.uid} friend={friend} />
                 ))}

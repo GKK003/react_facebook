@@ -12,9 +12,9 @@ interface CreatePostBoxProps {
 
 export default function CreatePostBox({ user, onOpen }: CreatePostBoxProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-[#ced0d4] px-4 py-3 md:h-[90px]  ">
+    <div className="bg-white dark:bg-[#242526] rounded-xl shadow-sm border border-[#ced0d4] dark:border-[#3a3b3c] px-4 py-3 md:h-[90px]">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 flex-shrink-0">
+        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
           {user?.photoURL ? (
             <Image
               src={user.photoURL}
@@ -32,7 +32,7 @@ export default function CreatePostBox({ user, onOpen }: CreatePostBoxProps) {
 
         <button
           onClick={onOpen}
-          className="flex-1 bg-[#f0f2f5] hover:bg-[#e4e6ea] transition-colors rounded-full px-4 py-2.5 text-left text-[#8a8d91] text-[15px] md:h-17 md:rounded-2xl truncate"
+          className="flex-1 bg-[#f0f2f5] dark:bg-[#3a3b3c] hover:bg-[#e4e6ea] dark:hover:bg-[#4e4f50] transition-colors rounded-full px-4 py-2.5 text-left text-[#8a8d91] dark:text-[#b0b3b8] text-[15px] md:h-17 md:rounded-2xl truncate"
         >
           What's on your mind, {user?.displayName?.split(" ")[0] || "you"}?
         </button>
@@ -40,29 +40,40 @@ export default function CreatePostBox({ user, onOpen }: CreatePostBoxProps) {
         <div className="flex items-center gap-1">
           <button
             onClick={onOpen}
-            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#f0f2f5] transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-[8px] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] transition-colors cursor-pointer"
           >
-            <svg viewBox="0 0 24 24" fill="#f3425f" className="w-6 h-6">
-              <path d="M15 8v8H5V8h10m1-2H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4V7c0-.55-.45-1-1-1z" />
-            </svg>
+            <Image
+              src="https://static.xx.fbcdn.net/rsrc.php/yE/r/f0XMdTi7eQy.webp?_nc_eui2=AeF6HdqovoqEel1djjy0Kr24WOK2rF8KwnxY4rasXwrCfGMrOn7lHAY3NRHjoxa8YRmoVFNtDufnYlzgQaGF61rE"
+              alt=""
+              width={24}
+              height={24}
+              unoptimized
+            />
           </button>
 
           <button
             onClick={onOpen}
-            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#f0f2f5] transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-[8px] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] transition-colors cursor-pointer"
           >
-            <svg viewBox="0 0 24 24" fill="#45bd62" className="w-6 h-6">
-              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-            </svg>
+            <Image
+              src="https://static.xx.fbcdn.net/rsrc.php/yX/r/8_VnccIZfRa.webp?_nc_eui2=AeEBL_cDNQc_opfChelZCbEdtIBijxuqePS0gGKPG6p49LW21NmMjaD28WK2ZKAOosrOzVdwnBi_NPOPs--Ml1fS"
+              alt=""
+              width={24}
+              height={24}
+              unoptimized
+            />
           </button>
 
           <button
             onClick={onOpen}
-            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#f0f2f5] transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-[8px] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] transition-colors cursor-pointer"
           >
-            <svg viewBox="0 0 24 24" fill="#f7b928" className="w-6 h-6">
-              <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
-            </svg>
+            <img
+              src="https://static.xx.fbcdn.net/rsrc.php/ya/r/XlpCJi9w2HF.webp?_nc_eui2=AeFR_6-Dj0VGhlXhb726y36TwIB16X8qm_nAgHXpfyqb-SfUGHSXRttsYM0-5XyRnZeMi249piBh_p9hoILb97g0"
+              alt=""
+              width={24}
+              height={24}
+            />
           </button>
         </div>
       </div>

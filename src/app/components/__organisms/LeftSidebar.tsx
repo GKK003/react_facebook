@@ -3,28 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import FriendsIcon from "@/assets/Homepage Icons/Friends.png";
-import MemoriesIcon from "@/assets/Homepage Icons/Memories.png";
-import SavedIcon from "@/assets/Homepage Icons/Saved.png";
-import GroupsIcon from "@/assets/Homepage Icons/Groups.png";
-import ReelsIcon from "@/assets/Homepage Icons/Reels.png";
-import MarketplaceIcon from "@/assets/Homepage Icons/Marketplace.png";
-import AdsManagerIcon from "@/assets/Homepage Icons/AdsManager.png";
-import BirthdaysIcon from "@/assets/Homepage Icons/Birthdays.png";
-import MetaAiIcon from "@/assets/Homepage Icons/MetaAi.png";
-
-const NAV_ITEMS = [
-  { label: "Meta AI", icon: MetaAiIcon, href: "" },
-  { label: "Friends", icon: FriendsIcon, href: "/friends" },
-  { label: "Memories", icon: MemoriesIcon, href: "" },
-  { label: "Saved", icon: SavedIcon, href: "/saved" },
-  { label: "Groups", icon: GroupsIcon, href: "/groups" },
-  { label: "Reels", icon: ReelsIcon, href: "" },
-  { label: "Marketplace", icon: MarketplaceIcon, href: "" },
-  { label: "Ads Manager", icon: AdsManagerIcon, href: "" },
-  { label: "Birthdays", icon: BirthdaysIcon, href: "" },
-];
-
 interface LeftSidebarProps {
   user: {
     displayName: string | null;
@@ -34,12 +12,12 @@ interface LeftSidebarProps {
 
 export default function LeftSidebar({ user }: LeftSidebarProps) {
   return (
-    <div className="flex flex-col w-[360px] sticky top-[56px] h-[calc(100vh-56px)] overflow-y-auto scrollbar-hide px-2 pb-4 lg:hidden">
+    <div className="flex flex-col w-[360px] min-w-[220px] max-w-[360px] flex-shrink sticky top-[56px] h-[calc(100vh-56px)] overflow-y-auto scrollbar-hide px-2 pb-4 ml-auto lg:hidden">
       <Link
         href="/profile"
-        className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#f2f2f2] transition-colors mt-2"
+        className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#f2f2f2] dark:hover:bg-[#3a3b3c] transition-colors mt-2"
       >
-        <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 bg-gray-300">
+        <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 bg-gray-300 dark:bg-[#3a3b3c]">
           {user?.photoURL ? (
             <Image
               src={user.photoURL}
@@ -47,65 +25,229 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
               width={36}
               height={36}
               className="w-full h-full object-cover"
+              unoptimized
             />
           ) : (
-            <div className="w-full h-full bg-gray-400 flex items-center justify-center text-white text-sm font-semibold">
+            <div className="w-full h-full bg-gray-400 dark:bg-[#4e4f50] flex items-center justify-center text-white text-sm font-semibold">
               {user?.displayName?.[0]?.toUpperCase() || "U"}
             </div>
           )}
         </div>
-        <span className="text-[15px] font-semibold text-[#050505]">
+
+        <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
           {user?.displayName || "User"}
         </span>
       </Link>
-      {NAV_ITEMS.map((item) => (
-        <Link
-          key={item.label}
-          href={item.href}
-          className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] transition-colors"
-        >
-          <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
-            <Image
-              src={item.icon}
-              alt={item.label}
-              width={36}
-              height={36}
-              className="w-9 h-9 object-contain"
-            />
-          </div>
-          <span className="text-[15px] font-semibold text-[#050505]">
-            {item.label}
-          </span>
-        </Link>
-      ))}
-      <button className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#f2f2f2] transition-colors w-full text-left">
-        <div className="w-9 h-9 rounded-full bg-[#e4e6ea] flex items-center justify-center flex-shrink-0">
+
+      <Link
+        href=""
+        className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] dark:hover:bg-[#3a3b3c] transition-colors"
+      >
+        <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+          <i
+            data-visualcompletion="css-img"
+            style={{
+              backgroundImage:
+                "url('https://static.xx.fbcdn.net/rsrc.php/yC/r/uekCFt9ago0.webp?_nc_eui2=AeGTxUguzOrrz5O34QCuKQtxTy1NlfYC_KlPLU2V9gL8qXeX8H1zcqBK3_IqIKif0xVCTY-J5W2ET73REJ4X4qdY')",
+              backgroundPosition: "0 0",
+              backgroundSize: "auto",
+              width: "36px",
+              height: "36px",
+              backgroundRepeat: "no-repeat",
+              display: "inline-block",
+            }}
+          />
+        </div>
+
+        <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
+          Meta AI
+        </span>
+      </Link>
+
+      <Link
+        href="/friends"
+        className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] dark:hover:bg-[#3a3b3c] transition-colors"
+      >
+        <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+          <i
+            data-visualcompletion="css-img"
+            style={{
+              backgroundImage:
+                "url('https://static.xx.fbcdn.net/rsrc.php/yq/r/6aum_pQMnLN.webp?_nc_eui2=AeFBPUslSaFS3_j96jAP4Lzb8ctQYTbLk1Pxy1BhNsuTUyrB7ksykrkuK0uy3dKxUktRmTpsRH503iAz66rlMVAX')",
+              backgroundPosition: "0 -814px",
+              backgroundSize: "auto",
+              width: "36px",
+              height: "36px",
+              backgroundRepeat: "no-repeat",
+              display: "inline-block",
+            }}
+          />
+        </div>
+
+        <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
+          Friends
+        </span>
+      </Link>
+
+      <Link
+        href=""
+        className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] dark:hover:bg-[#3a3b3c] transition-colors"
+      >
+        <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+          <i
+            data-visualcompletion="css-img"
+            style={{
+              backgroundImage:
+                "url('https://static.xx.fbcdn.net/rsrc.php/yq/r/6aum_pQMnLN.webp?_nc_eui2=AeFBPUslSaFS3_j96jAP4Lzb8ctQYTbLk1Pxy1BhNsuTUyrB7ksykrkuK0uy3dKxUktRmTpsRH503iAz66rlMVAX')",
+              backgroundPosition: "0 -1221px",
+              backgroundSize: "auto",
+              width: "36px",
+              height: "36px",
+              backgroundRepeat: "no-repeat",
+              display: "inline-block",
+            }}
+          />
+        </div>
+
+        <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
+          Memories
+        </span>
+      </Link>
+
+      <Link
+        href="/saved"
+        className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] dark:hover:bg-[#3a3b3c] transition-colors"
+      >
+        <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+          <i
+            data-visualcompletion="css-img"
+            style={{
+              backgroundImage:
+                "url('https://static.xx.fbcdn.net/rsrc.php/yq/r/6aum_pQMnLN.webp?_nc_eui2=AeFBPUslSaFS3_j96jAP4Lzb8ctQYTbLk1Pxy1BhNsuTUyrB7ksykrkuK0uy3dKxUktRmTpsRH503iAz66rlMVAX')",
+              backgroundPosition: "0 -518px",
+              backgroundSize: "auto",
+              width: "36px",
+              height: "36px",
+              backgroundRepeat: "no-repeat",
+              display: "inline-block",
+            }}
+          />
+        </div>
+
+        <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
+          Saved
+        </span>
+      </Link>
+
+      <Link
+        href="/groups"
+        className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] dark:hover:bg-[#3a3b3c] transition-colors"
+      >
+        <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+          <i
+            data-visualcompletion="css-img"
+            style={{
+              backgroundImage:
+                "url('https://static.xx.fbcdn.net/rsrc.php/yq/r/6aum_pQMnLN.webp?_nc_eui2=AeFBPUslSaFS3_j96jAP4Lzb8ctQYTbLk1Pxy1BhNsuTUyrB7ksykrkuK0uy3dKxUktRmTpsRH503iAz66rlMVAX')",
+              backgroundPosition: "0 -185px",
+              backgroundSize: "auto",
+              width: "36px",
+              height: "36px",
+              backgroundRepeat: "no-repeat",
+              display: "inline-block",
+            }}
+          />
+        </div>
+
+        <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
+          Groups
+        </span>
+      </Link>
+
+      <Link
+        href=""
+        className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] dark:hover:bg-[#3a3b3c] transition-colors"
+      >
+        <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+          <i
+            data-visualcompletion="css-img"
+            style={{
+              backgroundImage:
+                "url('https://static.xx.fbcdn.net/rsrc.php/yq/r/6aum_pQMnLN.webp?_nc_eui2=AeFBPUslSaFS3_j96jAP4Lzb8ctQYTbLk1Pxy1BhNsuTUyrB7ksykrkuK0uy3dKxUktRmTpsRH503iAz66rlMVAX')",
+              backgroundPosition: "0 -111px",
+              backgroundSize: "auto",
+              width: "36px",
+              height: "36px",
+              backgroundRepeat: "no-repeat",
+              display: "inline-block",
+            }}
+          />
+        </div>
+
+        <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
+          Reels
+        </span>
+      </Link>
+
+      <Link
+        href=""
+        className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] dark:hover:bg-[#3a3b3c] transition-colors"
+      >
+        <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+          <i
+            data-visualcompletion="css-img"
+            style={{
+              backgroundImage:
+                "url('https://static.xx.fbcdn.net/rsrc.php/yC/r/uekCFt9ago0.webp?_nc_eui2=AeGTxUguzOrrz5O34QCuKQtxTy1NlfYC_KlPLU2V9gL8qXeX8H1zcqBK3_IqIKif0xVCTY-J5W2ET73REJ4X4qdY')",
+              backgroundPosition: "0 0",
+              backgroundSize: "auto",
+              width: "36px",
+              height: "36px",
+              backgroundRepeat: "no-repeat",
+              display: "inline-block",
+            }}
+          />
+        </div>
+
+        <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
+          Marketplace
+        </span>
+      </Link>
+
+      <button className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#f2f2f2] dark:hover:bg-[#3a3b3c] transition-colors w-full text-left">
+        <div className="w-9 h-9 rounded-full bg-[#e4e6ea] dark:bg-[#3a3b3c] flex items-center justify-center flex-shrink-0">
           <svg
             viewBox="0 0 20 20"
             fill="currentColor"
-            className="w-5 h-5 text-[#050505]"
+            className="w-5 h-5 text-[#050505] dark:text-[#e4e6eb]"
           >
-            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+            <path d="M10 13.5L5 8.5 6.4 7.1 10 10.7l3.6-3.6L15 8.5l-5 5z" />
           </svg>
         </div>
-        <span className="text-[15px] font-semibold text-[#050505]">
+
+        <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
           See more
         </span>
       </button>
-      <hr className="my-2 border-[#ccc]" />
+
+      <hr className="my-2 border-[#ccc] dark:border-[#3a3b3c]" />
+
       <div className="px-2 py-1">
         <div className="flex items-center justify-between">
-          <span className="text-[17px] font-semibold text-[#606770]">
+          <span className="text-[17px] font-semibold text-[#606770] dark:text-[#b0b3b8]">
             Your shortcuts
           </span>
-          <button className="text-[14px] font-semibold text-[#1877f2]  hover:underline px-2 py-1 cursor-pointer">
+
+          <button className="text-[14px] font-semibold text-[#1877f2] hover:underline px-2 py-1 cursor-pointer">
             Edit
           </button>
         </div>
       </div>
-      <hr className="my-2 border-[#ccc]" />
+
+      <hr className="my-2 border-[#ccc] dark:border-[#3a3b3c]" />
+
       <div className="px-2 mt-2">
-        <p className="text-[12px] text-[#8a8d91] leading-5">
+        <p className="text-[12px] text-[#8a8d91] dark:text-[#b0b3b8] leading-5">
           Privacy · Terms · Advertising · Ad Choices · Cookies · More
         </p>
       </div>

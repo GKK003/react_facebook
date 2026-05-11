@@ -154,8 +154,8 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
                 )}
               </div>
 
-              <div className="absolute bottom-0 left-0 right-0 h-[25%] bg-white flex flex-col items-center pt-5 pb-2">
-                <div className="absolute top-[-16px] w-8 h-8 rounded-full bg-[#1877f2] border-4 border-white flex items-center justify-center">
+              <div className="absolute bottom-0 left-0 right-0 h-[25%] bg-white dark:bg-[#242526] flex flex-col items-center pt-5 pb-2">
+                <div className="absolute top-[-16px] w-8 h-8 rounded-full bg-[#1877f2] border-4 border-white dark:border-0 flex items-center justify-center">
                   {uploading ? (
                     <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
                   ) : (
@@ -165,7 +165,7 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
                   )}
                 </div>
 
-                <span className="text-[13px] font-semibold text-[#050505] text-center leading-4 mt-1">
+                <span className="text-[13px] font-semibold text-[#050505] text-center leading-4 mt-1 dark:text-white">
                   {uploading ? "Uploading..." : "Create story"}
                 </span>
               </div>

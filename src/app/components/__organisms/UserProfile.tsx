@@ -367,11 +367,11 @@ export default function UserProfile() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-[#f0f2f5]" />;
+    return <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#18191a]" />;
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5]">
+    <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#18191a]">
       <Navbar
         user={{
           displayName: navName,
@@ -381,7 +381,7 @@ export default function UserProfile() {
       />
 
       <div className="pt-[56px] max-w-[1100px] mx-auto">
-        <div className="bg-white rounded-b-lg shadow">
+        <div className="bg-white dark:bg-[#242526] rounded-b-lg shadow">
           <div className="relative h-[350px] bg-gradient-to-b from-[#b0b3b8] to-[#606770] rounded-b-lg overflow-hidden">
             {profile?.coverPhotoURL ? (
               <Image
@@ -392,11 +392,11 @@ export default function UserProfile() {
                 unoptimized
               />
             ) : (
-              <div className="w-full h-full bg-[#c9cdd2]" />
+              <div className="w-full h-full bg-[#c9cdd2] dark:bg-[#3a3b3c]" />
             )}
 
             {isOwnProfile && (
-              <label className="absolute bottom-4 right-4 flex items-center gap-2 bg-white hover:bg-[#f0f2f5] px-3 py-2 rounded-lg text-[15px] font-semibold text-[#050505] cursor-pointer">
+              <label className="absolute bottom-4 right-4 flex items-center gap-2 bg-white dark:bg-[#3a3b3c] hover:bg-[#f0f2f5] dark:hover:bg-[#4e4f50] px-3 py-2 rounded-lg text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb] cursor-pointer">
                 <input
                   type="file"
                   accept="image/*"
@@ -422,7 +422,7 @@ export default function UserProfile() {
           <div className="px-4 pb-4">
             <div className="flex items-end justify-between -mt-[52px] flex-wrap gap-4">
               <div className="relative">
-                <div className="w-[168px] h-[168px] rounded-full border-4 border-white overflow-hidden bg-[#c9cdd2] relative">
+                <div className="w-[168px] h-[168px] rounded-full border-4 border-white dark:border-[#242526] overflow-hidden bg-[#c9cdd2] dark:bg-[#3a3b3c] relative">
                   {profilePhoto ? (
                     <Image
                       src={profilePhoto}
@@ -439,7 +439,7 @@ export default function UserProfile() {
                 </div>
 
                 {isOwnProfile && (
-                  <label className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#e4e6ea] hover:bg-[#d8dadf] flex items-center justify-center cursor-pointer border-2 border-white">
+                  <label className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#e4e6ea] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center cursor-pointer border-2 border-white dark:border-[#242526]">
                     <input
                       type="file"
                       accept="image/*"
@@ -450,12 +450,12 @@ export default function UserProfile() {
                     />
 
                     {uploading === "profile" ? (
-                      <div className="w-4 h-4 border-2 border-[#050505] border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-[#050505] dark:border-[#e4e6eb] border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <svg
                         viewBox="0 0 24 24"
                         fill="currentColor"
-                        className="w-5 h-5 text-[#050505]"
+                        className="w-5 h-5 text-[#050505] dark:text-[#e4e6eb]"
                       >
                         <path d="M20 5h-3.2l-1.8-2H9L7.2 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zM12 18c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5zm0-1.8c1.8 0 3.2-1.4 3.2-3.2S13.8 9.8 12 9.8 8.8 11.2 8.8 13s1.4 3.2 3.2 3.2z" />
                       </svg>
@@ -465,12 +465,14 @@ export default function UserProfile() {
               </div>
 
               <div className="flex-1 pb-2">
-                <h1 className="text-[32px] font-bold text-[#050505]">
+                <h1 className="text-[32px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                   {fullName}
                 </h1>
 
                 {profile?.bio && (
-                  <p className="text-[#606770] text-[16px]">{profile.bio}</p>
+                  <p className="text-[#606770] dark:text-[#b0b3b8] text-[16px]">
+                    {profile.bio}
+                  </p>
                 )}
               </div>
 
@@ -487,7 +489,7 @@ export default function UserProfile() {
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-[15px] transition-colors disabled:opacity-70 ${
                         requestStatus === "none"
                           ? "bg-[#1877f2] hover:bg-[#166fe5] text-white"
-                          : "bg-[#e4e6ea] hover:bg-[#d8dadf] text-[#050505]"
+                          : "bg-[#e4e6ea] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] text-[#050505] dark:text-[#e4e6eb]"
                       }`}
                     >
                       <svg
@@ -501,7 +503,7 @@ export default function UserProfile() {
                       {getFriendButtonText()}
                     </button>
 
-                    <button className="flex items-center gap-2 bg-[#e4e6ea] hover:bg-[#d8dadf] text-[#050505] px-4 py-2 rounded-lg font-semibold text-[15px] transition-colors">
+                    <button className="flex items-center gap-2 bg-[#e4e6ea] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] text-[#050505] dark:text-[#e4e6eb] px-4 py-2 rounded-lg font-semibold text-[15px] transition-colors">
                       Message
                     </button>
                   </>
@@ -510,11 +512,11 @@ export default function UserProfile() {
             </div>
           </div>
 
-          <div className="border-t border-[#ced0d4] px-4 flex gap-1">
+          <div className="border-t border-[#ced0d4] dark:border-[#3a3b3c] px-4 flex gap-1 sm:gap-0 sm:px-2 gg:px-0">
             {["Posts", "About", "Friends", "Photos"].map((tab) => (
               <button
                 key={tab}
-                className="px-4 py-3 text-[15px] font-semibold text-[#606770] hover:bg-[#f0f2f5] rounded-lg transition-colors"
+                className="px-4 py-3 text-[15px] font-semibold text-[#606770] dark:text-[#b0b3b8] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] rounded-lg transition-colors"
               >
                 {tab}
               </button>
@@ -522,14 +524,14 @@ export default function UserProfile() {
           </div>
         </div>
 
-        <div className="flex gap-4 mt-4 px-4 pb-8">
-          <div className="w-[360px] flex-shrink-0">
-            <div className="bg-white rounded-lg shadow p-4">
-              <h2 className="text-[20px] font-bold text-[#050505] mb-3">
+        <div className="flex gap-4 mt-4 px-4 pb-8 lg:flex-col">
+          <div className="w-[360px] flex-shrink-0 lg:w-full">
+            <div className="bg-white dark:bg-[#242526] rounded-lg shadow p-4">
+              <h2 className="text-[20px] font-bold text-[#050505] dark:text-[#e4e6eb] mb-3">
                 Intro
               </h2>
 
-              <div className="space-y-2 text-[15px] text-[#050505]">
+              <div className="space-y-2 text-[15px] text-[#050505] dark:text-[#e4e6eb]">
                 {profile?.birthday && (
                   <div>
                     Birthday: {profile.birthday.day}/{profile.birthday.month}/
@@ -542,16 +544,20 @@ export default function UserProfile() {
                 )}
 
                 {!profile?.birthday && !profile?.gender && (
-                  <p className="text-[#8a8d91]">No intro information.</p>
+                  <p className="text-[#8a8d91] dark:text-[#b0b3b8]">
+                    No intro information.
+                  </p>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col gap-4">
+          <div className="flex-1 flex flex-col gap-4 lg:w-full">
             {posts.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-8 text-center">
-                <p className="text-[#8a8d91] text-[17px]">No posts yet.</p>
+              <div className="bg-white dark:bg-[#242526] rounded-lg shadow p-8 text-center">
+                <p className="text-[#8a8d91] dark:text-[#b0b3b8] text-[17px]">
+                  No posts yet.
+                </p>
               </div>
             ) : (
               posts.map((post) => (

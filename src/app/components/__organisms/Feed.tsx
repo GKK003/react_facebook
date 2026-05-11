@@ -204,13 +204,12 @@ export default function Feed() {
   const handleShare = (postId: string) => console.log("Share post", postId);
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5]">
+    <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#18191a]">
       <Navbar user={user} activePage="home" />
-
-      <div className="flex pt-[56px] max-w-[1920px] mx-auto">
+      <div className="flex pt-[56px] max-w-[1920px] mx-auto justify-center gap-4">
         <LeftSidebar user={user} />
 
-        <div className="flex-1 min-w-0 py-4 px-4 max-w-[680px] mx-auto">
+        <div className="w-full min-w-[500px] max-w-[680px] flex-shrink-0 py-4 px-4 xx:min-w-0 xx:flex-shrink">
           <div className="flex flex-col gap-4">
             <CreatePostBox user={user} onOpen={() => setShowCreatePost(true)} />
 
@@ -219,11 +218,11 @@ export default function Feed() {
             </div>
 
             <div className="flex items-center justify-between px-1">
-              <span className="text-[17px] font-bold text-[#050505]">
+              <span className="text-[17px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                 Posts
               </span>
 
-              <button className="flex items-center gap-1.5 bg-[#e4e6ea] hover:bg-[#d8dadf] transition-colors rounded-lg px-3 py-1.5 text-[15px] font-semibold text-[#050505]">
+              <button className="flex items-center gap-1.5 bg-[#e4e6ea] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] transition-colors rounded-lg px-3 py-1.5 text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
                 <svg
                   viewBox="0 0 24 24"
                   fill="currentColor"
@@ -258,8 +257,11 @@ export default function Feed() {
                 ))}
               </div>
             ) : posts.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-8 text-center">
-                <p className="text-[#8a8d91] text-[17px]">No posts yet.</p>
+              <div className="bg-white dark:bg-[#242526] rounded-lg shadow p-8 text-center">
+                {" "}
+                <p className="text-[#8a8d91] dark:text-[#b0b3b8] text-[17px]">
+                  No posts yet.
+                </p>{" "}
               </div>
             ) : (
               posts.map((post) => (
@@ -280,7 +282,6 @@ export default function Feed() {
 
         <RightSidebar />
       </div>
-
       {showCreatePost && (
         <CreatePostPopup
           user={user}

@@ -706,7 +706,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                   setShowMessenger(false);
                   setShowNotifications(false);
                 }}
-                className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 hover:opacity-90"
+                className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 hover:opacity-90 mt-[5px]"
               >
                 {user.photoURL ? (
                   <Image
@@ -727,14 +727,14 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
               {showProfileMenu && (
                 <div
                   ref={profileMenuRef}
-                  className="absolute right-0 top-[48px] w-[360px] max-w-[calc(100vw-16px)] bg-white rounded-lg shadow-[0_12px_28px_rgba(0,0,0,0.25)] border border-[#ced0d4] p-2 z-50"
+                  className="absolute right-0 top-[48px] w-[360px] max-w-[calc(100vw-16px)] bg-white dark:bg-[#242526] rounded-lg shadow-[0_12px_28px_rgba(0,0,0,0.25)] border border-[#ced0d4] dark:border-[#3a3b3c] p-2 z-50"
                 >
                   <Link
                     href="/profile"
                     onClick={() => setShowProfileMenu(false)}
                     className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c]"
                   >
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c]">
                       {user.photoURL ? (
                         <Image
                           src={user.photoURL}
@@ -751,7 +751,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                       )}
                     </div>
 
-                    <span className="text-[15px] font-semibold text-[#050505]">
+                    <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
                       {user.displayName || "User"}
                     </span>
                   </Link>
@@ -762,11 +762,11 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] text-left"
                   >
-                    <div className="w-10 h-10 rounded-full bg-[#e4e6eb] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] flex items-center justify-center">
                       <svg
                         viewBox="0 0 24 24"
                         fill="currentColor"
-                        className="w-5 h-5 text-[#050505] "
+                        className="w-5 h-5 text-[#050505] dark:text-[#e4e6eb]"
                       >
                         <path d="M16 13v-2H7V8l-5 4 5 4v-3h9zm3-10H9c-1.1 0-2 .9-2 2v3h2V5h10v14H9v-3H7v3c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
                       </svg>

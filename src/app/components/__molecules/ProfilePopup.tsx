@@ -59,13 +59,16 @@ export default function ProfilePopup({ onLogin }: Props) {
         </button>
 
         <div className="flex flex-col items-center">
-          <Image
-            src={selectedProfile.photoURL || NoProfile}
-            alt="profile"
-            width={110}
-            height={110}
-            className="rounded-full mb-4 object-cover"
-          />
+          <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-gray-300 mb-4">
+            <Image
+              src={selectedProfile.photoURL || NoProfile}
+              alt="profile"
+              width={100}
+              height={100}
+              className="w-full h-full object-cover"
+              unoptimized
+            />
+          </div>
 
           <h2 className="text-[22px] font-semibold mb-4">
             {selectedProfile.name}

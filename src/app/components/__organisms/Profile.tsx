@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, updateProfile } from "firebase/auth";
@@ -35,7 +36,14 @@ interface UserProfile {
   photoURL?: string | null;
   coverPhotoURL?: string | null;
   bio?: string;
+  city?: string;
 }
+
+type FriendCard = {
+  uid: string;
+  name: string;
+  photoURL: string | null;
+};
 
 export default function Profile() {
   const router = useRouter();
@@ -45,6 +53,14 @@ export default function Profile() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<"profile" | "cover" | null>(null);
+  const [acceptedSent, setAcceptedSent] = useState<any[]>([]);
+  const [acceptedReceived, setAcceptedReceived] = useState<any[]>([]);
+  const [showEditBio, setShowEditBio] = useState(false);
+  const [cityInput, setCityInput] = useState("");
+  const [birthDayInput, setBirthDayInput] = useState("");
+  const [birthMonthInput, setBirthMonthInput] = useState("");
+  const [birthYearInput, setBirthYearInput] = useState("");
+  const [savingBio, setSavingBio] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -78,6 +94,54 @@ export default function Profile() {
 
     const unsub = onSnapshot(q, (snap) => {
       setPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Post[]);
+    });
+
+    return () => unsub();
+  }, [authUser?.uid]);
+
+  useEffect(() => {
+    if (!authUser?.uid) {
+      setAcceptedSent([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "friendRequests"),
+      where("fromUid", "==", authUser.uid),
+      where("status", "==", "accepted"),
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      setAcceptedSent(
+        snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })),
+      );
+    });
+
+    return () => unsub();
+  }, [authUser?.uid]);
+
+  useEffect(() => {
+    if (!authUser?.uid) {
+      setAcceptedReceived([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "friendRequests"),
+      where("toUid", "==", authUser.uid),
+      where("status", "==", "accepted"),
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      setAcceptedReceived(
+        snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })),
+      );
     });
 
     return () => unsub();
@@ -171,6 +235,58 @@ export default function Profile() {
     }
   };
 
+  const openEditBio = () => {
+    setCityInput(profile?.city || "");
+    setBirthDayInput(profile?.birthday?.day || "");
+    setBirthMonthInput(profile?.birthday?.month || "");
+    setBirthYearInput(profile?.birthday?.year || "");
+    setShowEditBio(true);
+  };
+
+  const closeEditBio = () => {
+    setShowEditBio(false);
+    setCityInput("");
+    setBirthDayInput("");
+    setBirthMonthInput("");
+    setBirthYearInput("");
+  };
+
+  const handleSaveBio = async () => {
+    if (!authUser?.uid || savingBio) return;
+
+    setSavingBio(true);
+
+    try {
+      const updatedBirthday = {
+        day: birthDayInput.trim(),
+        month: birthMonthInput.trim(),
+        year: birthYearInput.trim(),
+      };
+
+      await updateDoc(doc(db, "users", authUser.uid), {
+        city: cityInput.trim(),
+        birthday: updatedBirthday,
+      });
+
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              city: cityInput.trim(),
+              birthday: updatedBirthday,
+            }
+          : prev,
+      );
+
+      closeEditBio();
+    } catch (err) {
+      console.error("Save profile details error:", err);
+      alert("Could not save profile details.");
+    } finally {
+      setSavingBio(false);
+    }
+  };
+
   if (loading) {
     return <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#18191a]" />;
   }
@@ -181,6 +297,28 @@ export default function Profile() {
       : authUser?.displayName || "Giorgi";
 
   const userPhoto = profile?.photoURL || authUser?.photoURL || null;
+
+  const friendsMap = new Map<string, FriendCard>();
+
+  acceptedSent.forEach((request) => {
+    friendsMap.set(request.toUid, {
+      uid: request.toUid,
+      name: request.toName || "User",
+      photoURL: request.toPhoto || null,
+    });
+  });
+
+  acceptedReceived.forEach((request) => {
+    friendsMap.set(request.fromUid, {
+      uid: request.fromUid,
+      name: request.fromName || "User",
+      photoURL: request.fromPhoto || null,
+    });
+  });
+
+  const friends = Array.from(friendsMap.values()).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#18191a]">
@@ -273,30 +411,35 @@ export default function Profile() {
                   {fullName}
                 </h1>
 
-                {profile?.bio && (
-                  <p className="text-[#606770] dark:text-[#b0b3b8] text-[16px]">
-                    {profile.bio}
+                {profile?.city && (
+                  <p className="text-[#606770] dark:text-[#b0b3b8] text-[15px] mt-1">
+                    Lives in {profile.city}
                   </p>
                 )}
               </div>
 
               <div className="flex items-center gap-2 pb-2">
-                <button className="bg-[#1877f2] hover:bg-[#166fe5] text-white px-4 py-2 rounded-lg font-semibold text-[15px]">
+                <button
+                  onClick={openEditBio}
+                  className="bg-[#1877f2] hover:bg-[#166fe5] text-white px-4 py-2 rounded-lg font-semibold text-[15px] cursor-pointer"
+                >
                   Edit profile
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-[#ced0d4] dark:border-[#3a3b3c] px-4 flex gap-1 sm:gap-0 sm:px-2 gg:px-0 ">
-            {["Posts", "About", "Friends", "Photos"].map((tab) => (
-              <button
-                key={tab}
-                className="px-4 py-3 text-[15px] font-semibold text-[#606770] dark:text-[#b0b3b8] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] rounded-lg"
-              >
-                {tab}
-              </button>
-            ))}
+          <div className="border-t border-[#ced0d4] dark:border-[#3a3b3c] px-4 flex gap-1 sm:gap-0 sm:px-2 gg:px-0">
+            {["All", "About", "Friends", "Photos", "Reels", "More"].map(
+              (tab) => (
+                <button
+                  key={tab}
+                  className="px-4 py-3 text-[15px] font-semibold text-[#606770] dark:text-[#b0b3b8] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] rounded-lg cursor-pointer"
+                >
+                  {tab}
+                </button>
+              ),
+            )}
           </div>
         </div>
 
@@ -308,17 +451,87 @@ export default function Profile() {
               </h2>
 
               <div className="mt-3 space-y-2 text-[15px] text-[#050505] dark:text-[#e4e6eb]">
-                {profile?.birthday && (
-                  <div>
-                    Birthday: {profile.birthday.day} {profile.birthday.month}{" "}
-                    {profile.birthday.year}
-                  </div>
-                )}
+                {profile?.birthday?.day &&
+                  profile?.birthday?.month &&
+                  profile?.birthday?.year && (
+                    <div>
+                      Birthday: {profile.birthday.day} {profile.birthday.month}{" "}
+                      {profile.birthday.year}
+                    </div>
+                  )}
 
                 {profile?.gender && (
-                  <div className="capitalize">{profile.gender}</div>
+                  <div className="capitalize">Gender: {profile.gender}</div>
                 )}
+
+                {profile?.city && <div>Lives in {profile.city}</div>}
+
+                {!profile?.birthday?.day &&
+                  !profile?.birthday?.month &&
+                  !profile?.birthday?.year &&
+                  !profile?.gender &&
+                  !profile?.city && (
+                    <p className="text-[#8a8d91] dark:text-[#b0b3b8]">
+                      No personal details.
+                    </p>
+                  )}
               </div>
+            </div>
+
+            <div className="bg-white dark:bg-[#242526] rounded-lg shadow p-4 mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-[20px] font-bold text-[#050505] dark:text-[#e4e6eb]">
+                  Friends
+                </h2>
+
+                <Link
+                  href="/friends/all"
+                  className="text-[15px] text-[#1877f2] hover:underline cursor-pointer"
+                >
+                  See all friends
+                </Link>
+              </div>
+
+              <p className="text-[15px] text-[#65676b] dark:text-[#b0b3b8] mb-3">
+                {friends.length} friend{friends.length !== 1 ? "s" : ""}
+              </p>
+
+              {friends.length === 0 ? (
+                <p className="text-[15px] text-[#8a8d91] dark:text-[#b0b3b8]">
+                  No friends yet.
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {friends.slice(0, 9).map((friend) => (
+                    <Link
+                      key={friend.uid}
+                      href={`/profile/${friend.uid}`}
+                      className="cursor-pointer"
+                    >
+                      <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-300 dark:bg-[#3a3b3c]">
+                        {friend.photoURL ? (
+                          <Image
+                            src={friend.photoURL}
+                            alt={friend.name}
+                            width={110}
+                            height={110}
+                            className="w-full h-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[28px] font-bold">
+                            {friend.name[0]?.toUpperCase() || "U"}
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="mt-1 text-[13px] font-semibold text-[#050505] dark:text-[#e4e6eb] truncate">
+                        {friend.name}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -346,6 +559,94 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      {showEditBio && (
+        <div
+          className="fixed inset-0 z-50 bg-white/70 dark:bg-black/60 flex items-center justify-center px-4"
+          onClick={closeEditBio}
+        >
+          <div
+            className="w-[500px] max-w-[calc(100vw-24px)] bg-white dark:bg-[#242526] rounded-lg shadow-[0_12px_28px_rgba(0,0,0,0.25)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative h-[60px] flex items-center justify-center border-b border-[#dadde1] dark:border-[#3a3b3c]">
+              <h2 className="text-[20px] font-bold text-[#050505] dark:text-[#e4e6eb]">
+                Edit profile details
+              </h2>
+
+              <button
+                onClick={closeEditBio}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center cursor-pointer"
+              >
+                <span className="text-[34px] leading-none text-[#65676b] dark:text-[#b0b3b8] font-light">
+                  ×
+                </span>
+              </button>
+            </div>
+
+            <div className="p-4">
+              <div className="mb-4">
+                <span className="block text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb] mb-2">
+                  Birthday
+                </span>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    value={birthDayInput}
+                    onChange={(e) => setBirthDayInput(e.target.value)}
+                    placeholder="Day"
+                    className="h-10 rounded-lg border border-[#ccd0d5] dark:border-[#3a3b3c] bg-white dark:bg-[#242526] px-3 outline-none text-[15px] text-[#050505] dark:text-[#e4e6eb] placeholder:text-[#65676b] dark:placeholder:text-[#b0b3b8] focus:border-[#1877f2]"
+                  />
+
+                  <input
+                    value={birthMonthInput}
+                    onChange={(e) => setBirthMonthInput(e.target.value)}
+                    placeholder="Month"
+                    className="h-10 rounded-lg border border-[#ccd0d5] dark:border-[#3a3b3c] bg-white dark:bg-[#242526] px-3 outline-none text-[15px] text-[#050505] dark:text-[#e4e6eb] placeholder:text-[#65676b] dark:placeholder:text-[#b0b3b8] focus:border-[#1877f2]"
+                  />
+
+                  <input
+                    value={birthYearInput}
+                    onChange={(e) => setBirthYearInput(e.target.value)}
+                    placeholder="Year"
+                    className="h-10 rounded-lg border border-[#ccd0d5] dark:border-[#3a3b3c] bg-white dark:bg-[#242526] px-3 outline-none text-[15px] text-[#050505] dark:text-[#e4e6eb] placeholder:text-[#65676b] dark:placeholder:text-[#b0b3b8] focus:border-[#1877f2]"
+                  />
+                </div>
+              </div>
+
+              <label className="block mb-4">
+                <span className="block text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb] mb-2">
+                  Current city
+                </span>
+
+                <input
+                  value={cityInput}
+                  onChange={(e) => setCityInput(e.target.value)}
+                  placeholder="Add city"
+                  className="w-full h-10 rounded-lg border border-[#ccd0d5] dark:border-[#3a3b3c] bg-white dark:bg-[#242526] px-3 outline-none text-[15px] text-[#050505] dark:text-[#e4e6eb] placeholder:text-[#65676b] dark:placeholder:text-[#b0b3b8] focus:border-[#1877f2]"
+                />
+              </label>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={closeEditBio}
+                  className="h-9 px-4 rounded-md hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] text-[#1877f2] text-[15px] font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={handleSaveBio}
+                  disabled={savingBio}
+                  className="h-9 px-8 rounded-md bg-[#1877f2] hover:bg-[#166fe5] text-white text-[15px] font-semibold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {savingBio ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

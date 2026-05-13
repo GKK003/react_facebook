@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import {
   deleteDoc,
@@ -16,8 +17,10 @@ import {
   arrayUnion,
   arrayRemove,
   getDoc,
+  setDoc,
 } from "firebase/firestore";
 import { auth, db } from "@/firebase/firebase";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import TimeAgoText from "./TimeAgo";
 
 export interface Post {
@@ -27,6 +30,7 @@ export interface Post {
   authorId: string;
   text: string;
   mediaURL?: string;
+  mediaURLs?: string[];
   mediaType?: "image" | "video";
   createdAt: any;
   likes: string[];
@@ -48,6 +52,16 @@ interface LikedUser {
   uid: string;
   name: string;
   photoURL: string | null;
+}
+
+interface Reply {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorPhoto: string | null;
+  text: string;
+  createdAt: any;
+  likes: string[];
 }
 
 type ShareFriend = {
@@ -73,6 +87,8 @@ export default function PostCard({
   currentUserPhoto,
   onShare,
 }: PostCardProps) {
+  const router = useRouter();
+
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [showMore, setShowMore] = useState(false);
@@ -92,8 +108,56 @@ export default function PostCard({
   const [showLikesPopup, setShowLikesPopup] = useState(false);
   const [likedUsers, setLikedUsers] = useState<LikedUser[]>([]);
   const [likesLoading, setLikesLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [showEditPost, setShowEditPost] = useState(false);
+  const [editText, setEditText] = useState(post.text || "");
+  const [editFile, setEditFile] = useState<File | null>(null);
+  const [editPreviewURL, setEditPreviewURL] = useState<string | null>(null);
+  const [removeMedia, setRemoveMedia] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [showCommentLikesPopup, setShowCommentLikesPopup] = useState(false);
+  const [commentLikedUsers, setCommentLikedUsers] = useState<LikedUser[]>([]);
+  const [commentLikesLoading, setCommentLikesLoading] = useState(false);
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replies, setReplies] = useState<Record<string, Reply[]>>({});
+  const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
+  const [submittingReply, setSubmittingReply] = useState<string | null>(null);
 
   const userId = currentUserId || auth.currentUser?.uid;
+  useEffect(() => {
+    if (!userId || !post.id) return;
+
+    const hiddenPosts = JSON.parse(
+      localStorage.getItem(`hiddenPosts_${userId}`) || "[]",
+    );
+
+    setHidden(hiddenPosts.includes(post.id));
+  }, [userId, post.id]);
+  const handleHidePost = () => {
+    if (!userId) return;
+
+    const key = `hiddenPosts_${userId}`;
+    const hiddenPosts = JSON.parse(localStorage.getItem(key) || "[]");
+
+    const updated = Array.from(new Set([...hiddenPosts, post.id]));
+
+    localStorage.setItem(key, JSON.stringify(updated));
+    setHidden(true);
+    setShowMenu(false);
+  };
+
+  const handleUndoHidePost = () => {
+    if (!userId) return;
+
+    const key = `hiddenPosts_${userId}`;
+    const hiddenPosts = JSON.parse(localStorage.getItem(key) || "[]");
+
+    const updated = hiddenPosts.filter((id: string) => id !== post.id);
+
+    localStorage.setItem(key, JSON.stringify(updated));
+    setHidden(false);
+  };
 
   const safeCurrentUserName =
     currentUserName && currentUserName.trim() !== ""
@@ -102,6 +166,21 @@ export default function PostCard({
 
   const safeCurrentUserPhoto =
     currentUserPhoto || auth.currentUser?.photoURL || null;
+
+  useEffect(() => {
+    if (!userId || !post.id) {
+      setSaved(false);
+      return;
+    }
+
+    const savedRef = doc(db, "savedPosts", `${userId}_${post.id}`);
+
+    const unsub = onSnapshot(savedRef, (snap) => {
+      setSaved(snap.exists());
+    });
+
+    return () => unsub();
+  }, [userId, post.id]);
 
   useEffect(() => {
     if (!userId || !showSharePopup) return;
@@ -141,6 +220,32 @@ export default function PostCard({
 
     return () => unsub();
   }, [userId, showSharePopup]);
+
+  useEffect(() => {
+    if (!showCommentModal) return;
+    if (comments.length === 0) return;
+
+    const unsubs = comments.map((comment) => {
+      const q = query(
+        collection(db, "posts", post.id, "comments", comment.id, "replies"),
+        orderBy("createdAt", "asc"),
+      );
+
+      return onSnapshot(q, (snap) => {
+        setReplies((prev) => ({
+          ...prev,
+          [comment.id]: snap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+          })) as Reply[],
+        }));
+      });
+    });
+
+    return () => {
+      unsubs.forEach((unsub) => unsub());
+    };
+  }, [showCommentModal, comments, post.id]);
 
   useEffect(() => {
     setLiked(userId ? post.likes?.includes(userId) : false);
@@ -212,6 +317,48 @@ export default function PostCard({
     }
   };
 
+  const openCommentLikesPopup = async (comment: Comment) => {
+    if (!Array.isArray(comment.likes) || comment.likes.length === 0) return;
+
+    setShowCommentLikesPopup(true);
+    setCommentLikesLoading(true);
+
+    try {
+      const users = await Promise.all(
+        comment.likes.map(async (uid) => {
+          const snap = await getDoc(doc(db, "users", uid));
+
+          if (snap.exists()) {
+            const data = snap.data();
+
+            const name =
+              `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
+              data.email ||
+              "User";
+
+            return {
+              uid,
+              name,
+              photoURL: data.photoURL || null,
+            };
+          }
+
+          return {
+            uid,
+            name: "User",
+            photoURL: null,
+          };
+        }),
+      );
+
+      setCommentLikedUsers(users);
+    } catch (err) {
+      console.error("Comment likes popup error:", err);
+    } finally {
+      setCommentLikesLoading(false);
+    }
+  };
+
   const handleLike = async () => {
     if (!userId) return;
 
@@ -235,6 +382,127 @@ export default function PostCard({
     }
   };
 
+  const openEditPost = () => {
+    setEditText(post.text || "");
+    setEditFile(null);
+    setEditPreviewURL(null);
+    setRemoveMedia(false);
+    setShowMenu(false);
+    setShowEditPost(true);
+  };
+
+  const closeEditPost = () => {
+    if (editPreviewURL) {
+      URL.revokeObjectURL(editPreviewURL);
+    }
+
+    setEditText(post.text || "");
+    setEditFile(null);
+    setEditPreviewURL(null);
+    setRemoveMedia(false);
+    setShowEditPost(false);
+  };
+
+  const handleEditFileSelect = (file: File | undefined) => {
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please choose an image.");
+      return;
+    }
+
+    if (editPreviewURL) {
+      URL.revokeObjectURL(editPreviewURL);
+    }
+
+    setEditFile(file);
+    setEditPreviewURL(URL.createObjectURL(file));
+    setRemoveMedia(false);
+  };
+
+  const handleSaveEditPost = async () => {
+    if (!userId || userId !== post.authorId || editing) return;
+
+    if (!editText.trim() && !editFile && removeMedia && postImages.length === 0)
+      return;
+
+    setEditing(true);
+
+    try {
+      let mediaURL: string | null | undefined =
+        postImages[0] || post.mediaURL || null;
+      let mediaURLs: string[] = postImages;
+      let mediaType: "image" | "video" | null | undefined =
+        mediaURLs.length > 0 ? "image" : post.mediaType || null;
+
+      if (removeMedia) {
+        mediaURL = null;
+        mediaURLs = [];
+        mediaType = null;
+      }
+
+      if (editFile) {
+        mediaURL = await uploadToCloudinary(editFile);
+        mediaURLs = mediaURL ? [mediaURL] : [];
+        mediaType = mediaURL ? "image" : null;
+      }
+
+      await updateDoc(doc(db, "posts", post.id), {
+        text: editText.trim(),
+        mediaURL,
+        mediaURLs,
+        mediaType,
+      });
+
+      closeEditPost();
+    } catch (err: any) {
+      console.error("Edit post error:", err);
+      alert(err.message || "Could not edit post.");
+    } finally {
+      setEditing(false);
+    }
+  };
+
+  const handleSavePost = async () => {
+    if (!userId) return;
+
+    const savedRef = doc(db, "savedPosts", `${userId}_${post.id}`);
+
+    try {
+      if (saved) {
+        await deleteDoc(savedRef);
+        setShowMenu(false);
+        return;
+      }
+
+      await setDoc(savedRef, {
+        userId,
+        postId: post.id,
+        savedAt: serverTimestamp(),
+      });
+
+      setShowMenu(false);
+    } catch (err) {
+      console.error("Save post error:", err);
+    }
+  };
+
+  const handleLikeComment = async (comment: Comment) => {
+    if (!userId) return;
+
+    const alreadyLiked = Array.isArray(comment.likes)
+      ? comment.likes.includes(userId)
+      : false;
+
+    try {
+      await updateDoc(doc(db, "posts", post.id, "comments", comment.id), {
+        likes: alreadyLiked ? arrayRemove(userId) : arrayUnion(userId),
+      });
+    } catch (err) {
+      console.error("Comment like error:", err);
+    }
+  };
+
   const openCommentModal = () => {
     setShowComments(true);
     setShowCommentModal(true);
@@ -252,8 +520,9 @@ export default function PostCard({
         authorName: safeCurrentUserName,
         authorPhoto: safeCurrentUserPhoto,
         text: shareText.trim(),
-        mediaURL: post.mediaURL || null,
-        mediaType: post.mediaType || null,
+        mediaURL: postImages[0] || post.mediaURL || null,
+        mediaURLs: postImages,
+        mediaType: postImages.length > 0 ? "image" : post.mediaType || null,
         sharedPostId: post.id,
         sharedAuthorId: post.authorId,
         sharedAuthorName: post.authorName || "User",
@@ -312,9 +581,160 @@ export default function PostCard({
     }
   };
 
+  const handleSubmitReply = async (commentId: string) => {
+    const text = replyText[commentId]?.trim();
+
+    if (!text || !userId || submittingReply) return;
+
+    setSubmittingReply(commentId);
+
+    try {
+      await addDoc(
+        collection(db, "posts", post.id, "comments", commentId, "replies"),
+        {
+          authorId: userId,
+          authorName: safeCurrentUserName,
+          authorPhoto: safeCurrentUserPhoto,
+          text,
+          createdAt: serverTimestamp(),
+          likes: [],
+        },
+      );
+
+      setReplyText((prev) => ({
+        ...prev,
+        [commentId]: "",
+      }));
+
+      setReplyingTo(null);
+
+      setShowReplies((prev) => ({
+        ...prev,
+        [commentId]: true,
+      }));
+    } catch (err) {
+      console.error("Reply error:", err);
+    } finally {
+      setSubmittingReply(null);
+    }
+  };
+
   const isLongContent = (post.text || "").length > 250;
   const displayContent =
     isLongContent && !showMore ? post.text.slice(0, 250) + "..." : post.text;
+
+  const postImages =
+    Array.isArray(post.mediaURLs) && post.mediaURLs.length > 0
+      ? post.mediaURLs.slice(0, 6)
+      : post.mediaURL && post.mediaType === "image"
+        ? [post.mediaURL]
+        : [];
+
+  const renderImageCollage = (images: string[], modal = false) => {
+    const oneClass = modal
+      ? "max-h-[520px] object-contain"
+      : "max-h-[650px] object-contain";
+
+    if (images.length === 1) {
+      return (
+        <div className="w-full bg-[#f0f2f5] dark:bg-[#18191a] flex items-center justify-center overflow-hidden">
+          <img src={images[0]} alt="" className={`w-full ${oneClass}`} />
+        </div>
+      );
+    }
+
+    if (images.length === 2) {
+      return (
+        <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#242526]">
+          {images.map((url) => (
+            <img
+              key={url}
+              src={url}
+              alt=""
+              className="w-full h-[420px] object-cover"
+            />
+          ))}
+        </div>
+      );
+    }
+
+    if (images.length === 3) {
+      return (
+        <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#242526]">
+          <img
+            src={images[0]}
+            alt=""
+            className="w-full h-[420px] object-cover"
+          />
+          <div className="grid grid-rows-2 gap-1">
+            {images.slice(1).map((url) => (
+              <img
+                key={url}
+                src={url}
+                alt=""
+                className="w-full h-[208px] object-cover"
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (images.length === 4) {
+      return (
+        <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#242526]">
+          {images.map((url) => (
+            <img
+              key={url}
+              src={url}
+              alt=""
+              className="w-full h-[260px] object-cover"
+            />
+          ))}
+        </div>
+      );
+    }
+
+    if (images.length === 5) {
+      return (
+        <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#242526]">
+          <div className="grid grid-rows-2 gap-1">
+            {images.slice(0, 2).map((url) => (
+              <img
+                key={url}
+                src={url}
+                alt=""
+                className="w-full h-[208px] object-cover"
+              />
+            ))}
+          </div>
+          <div className="grid grid-rows-3 gap-1">
+            {images.slice(2, 5).map((url) => (
+              <img
+                key={url}
+                src={url}
+                alt=""
+                className="w-full h-[137px] object-cover"
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#242526]">
+        {images.slice(0, 6).map((url) => (
+          <img
+            key={url}
+            src={url}
+            alt=""
+            className="w-full h-[210px] object-cover"
+          />
+        ))}
+      </div>
+    );
+  };
 
   if (deleted) return null;
 
@@ -331,8 +751,8 @@ export default function PostCard({
         </div>
 
         <button
-          onClick={() => setHidden(false)}
-          className="text-[#1877f2] font-semibold text-[15px] hover:underline"
+          onClick={handleUndoHidePost}
+          className="text-[#1877f2] font-semibold text-[15px] hover:underline cursor-pointer"
         >
           Undo
         </button>
@@ -353,6 +773,7 @@ export default function PostCard({
                   width={40}
                   height={40}
                   className="w-full h-full object-cover"
+                  unoptimized
                 />
               ) : (
                 <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold text-sm">
@@ -390,25 +811,38 @@ export default function PostCard({
 
                 <div className="absolute right-0 top-10 w-[260px] bg-white dark:bg-[#242526] rounded-lg shadow-xl border border-[#ced0d4] dark:border-[#3a3b3c] z-20 py-1">
                   <button
-                    onClick={() => {
-                      setHidden(true);
-                      setShowMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]"
+                    onClick={handleHidePost}
+                    className="w-full text-left px-4 py-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb] cursor-pointer"
                   >
                     Hide post
                   </button>
 
+                  <button
+                    onClick={handleSavePost}
+                    className="w-full text-left px-4 py-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb] cursor-pointer"
+                  >
+                    {saved ? "Unsave post" : "Save post"}
+                  </button>
+
                   {userId === post.authorId && (
-                    <button
-                      onClick={() => {
-                        handleDelete();
-                        setShowMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] text-[15px] font-semibold text-[#f02849]"
-                    >
-                      Delete post
-                    </button>
+                    <>
+                      <button
+                        onClick={openEditPost}
+                        className="w-full text-left px-4 py-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb] cursor-pointer"
+                      >
+                        Edit post
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          handleDelete();
+                          setShowMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] text-[15px] font-semibold text-[#f02849] cursor-pointer"
+                      >
+                        Delete post
+                      </button>
+                    </>
                   )}
                 </div>
               </>
@@ -423,7 +857,7 @@ export default function PostCard({
               {isLongContent && (
                 <button
                   onClick={() => setShowMore(!showMore)}
-                  className="text-[#8a8d91] dark:text-[#b0b3b8] font-semibold hover:underline ml-1"
+                  className="text-[#8a8d91] dark:text-[#b0b3b8] font-semibold hover:underline ml-1 cursor-pointer"
                 >
                   {showMore ? " See less" : " See more"}
                 </button>
@@ -432,30 +866,13 @@ export default function PostCard({
           </div>
         )}
 
-        {post.mediaURL && post.mediaType === "image" && (
+        {postImages.length > 0 && (
           <button
             onClick={openCommentModal}
-            className="w-full bg-[#f0f2f5] dark:bg-[#18191a] overflow-hidden block flex items-center justify-center"
+            className="w-full bg-[#f0f2f5] dark:bg-[#18191a] overflow-hidden cursor-pointer"
           >
-            <Image
-              src={post.mediaURL}
-              alt="Post media"
-              width={900}
-              height={700}
-              className="w-full max-h-[650px] object-contain bg-[#f0f2f5] dark:bg-[#18191a]"
-              unoptimized
-            />
+            {renderImageCollage(postImages)}
           </button>
-        )}
-
-        {post.mediaURL && post.mediaType === "video" && (
-          <div className="relative w-full bg-black">
-            <video
-              src={post.mediaURL}
-              controls
-              className="w-full max-h-[500px] object-contain"
-            />
-          </div>
         )}
 
         {(likesCount > 0 || comments.length > 0) && (
@@ -464,7 +881,7 @@ export default function PostCard({
               {likesCount > 0 && (
                 <button
                   onClick={openLikesPopup}
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 cursor-pointer"
                 >
                   <img
                     className="w-[18px] h-[18px]"
@@ -581,7 +998,7 @@ export default function PostCard({
               </h2>
               <button
                 onClick={() => setShowCommentModal(false)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-[#e4e6ea] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center text-[34px] leading-none text-[#65676b] dark:text-[#b0b3b8]"
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-[#e4e6ea] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center text-[34px] leading-none text-[#65676b] dark:text-[#b0b3b8] cursor-pointer"
               >
                 ×
               </button>
@@ -625,27 +1042,13 @@ export default function PostCard({
               </div>
             </div>
 
-            {post.mediaURL && post.mediaType === "image" && (
-              <div className="w-full h-[420px] bg-[#f0f2f5] dark:bg-[#18191a] flex items-center justify-center overflow-hidden lg:h-[360px] sm:h-[280px]">
-                <img
-                  src={post.mediaURL}
-                  alt=""
-                  className="w-full h-full object-contain"
-                />
+            {postImages.length > 0 && (
+              <div className="w-full bg-[#f0f2f5] dark:bg-[#18191a] overflow-hidden">
+                {renderImageCollage(postImages, true)}
               </div>
             )}
 
-            {post.mediaURL && post.mediaType === "video" && (
-              <div className="w-full max-h-[260px] bg-black shrink-0">
-                <video
-                  src={post.mediaURL}
-                  controls
-                  className="w-full max-h-[260px] object-contain"
-                />
-              </div>
-            )}
-
-            {!post.mediaURL && post.text && (
+            {postImages.length === 0 && post.text && (
               <div className="px-4 py-4 border-b border-[#e4e6ea] dark:border-[#3a3b3c] shrink-0">
                 <p className="text-[16px] text-[#050505] dark:text-[#e4e6eb] whitespace-pre-wrap">
                   {post.text}
@@ -713,7 +1116,7 @@ export default function PostCard({
                   data-visualcompletion="css-img"
                   style={{
                     backgroundImage:
-                      "url('https://static.xx.fbcdn.net/rsrc.php/yd/r/Fv2SXGWpLpB.webp?_nc_eui2=AeGJ4UCCkeCtw-5MGO2vHLchr_rM-2-GSAKv-sz7b4ZIAnias0V3Za5hrWAB6k-WmVrFCxOfbmnm1NaTkD_aAjFE')",
+                      "url('https://static.xx.fbcdn.net/rsrc.php/yd/r/Fv2SXGWpLpB.webp?_nc_eui2=AeGJ4UCCkeCtw-5MGO2vHLchr_rM-2-GSAKv-sz7b4ZIAnias0V3Za5hrWAB6k-WVrFCxOfbmnm1NaTkD_aAjFE')",
                     backgroundPosition: "0px -487px",
                     backgroundSize: "auto",
                     width: "20px",
@@ -751,7 +1154,7 @@ export default function PostCard({
             </div>
 
             <div className="px-4 py-3">
-              <button className="text-[16px] font-semibold text-[#65676b] dark:text-[#b0b3b8] mb-4">
+              <button className="text-[16px] font-semibold text-[#65676b] dark:text-[#b0b3b8] mb-4 cursor-pointer">
                 Most relevant ▾
               </button>
               <div className="flex flex-col gap-3">
@@ -774,11 +1177,12 @@ export default function PostCard({
                         )}
                       </div>
 
-                      <div>
+                      <div className="flex-1">
                         <div className="bg-[#f0f2f5] dark:bg-[#3a3b3c] rounded-2xl px-3 py-2 inline-block">
                           <p className="text-[13px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                             {commentName}
                           </p>
+
                           <p className="text-[15px] text-[#050505] dark:text-[#e4e6eb]">
                             {c.text}
                           </p>
@@ -788,13 +1192,186 @@ export default function PostCard({
                           <span className="text-[12px] text-[#65676b] dark:text-[#b0b3b8]">
                             <TimeAgoText date={c.createdAt} />
                           </span>
-                          <button className="text-[12px] font-bold text-[#65676b] dark:text-[#b0b3b8]">
+
+                          <button
+                            onClick={() => handleLikeComment(c)}
+                            className={`text-[12px] font-bold cursor-pointer ${
+                              c.likes?.includes(userId || "")
+                                ? "text-[#1877f2]"
+                                : "text-[#65676b] dark:text-[#b0b3b8]"
+                            }`}
+                          >
                             Like
                           </button>
-                          <button className="text-[12px] font-bold text-[#65676b] dark:text-[#b0b3b8]">
+
+                          <button
+                            onClick={() => {
+                              setReplyingTo(c.id);
+                              setShowReplies((prev) => ({
+                                ...prev,
+                                [c.id]: true,
+                              }));
+                            }}
+                            className="text-[12px] font-bold text-[#65676b] dark:text-[#b0b3b8] cursor-pointer"
+                          >
                             Reply
                           </button>
+
+                          {Array.isArray(c.likes) && c.likes.length > 0 && (
+                            <button
+                              onClick={() => openCommentLikesPopup(c)}
+                              className="flex items-center gap-1 text-[12px] font-semibold text-[#65676b] dark:text-[#b0b3b8] hover:underline cursor-pointer"
+                            >
+                              <img
+                                className="w-[14px] h-[14px]"
+                                height={14}
+                                width={14}
+                                alt="Like"
+                                src="data:image/svg+xml,%3Csvg fill='none' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M16.0001 7.9996c0 4.418-3.5815 7.9996-7.9995 7.9996S.001 12.4176.001 7.9996 3.5825 0 8.0006 0C12.4186 0 16 3.5815 16 7.9996Z' fill='url(%23paint0_linear_15251_63610)'/%3E%3Cpath d='M16.0001 7.9996c0 4.418-3.5815 7.9996-7.9995 7.9996S.001 12.4176.001 7.9996 3.5825 0 8.0006 0C12.4186 0 16 3.5815 16 7.9996Z' fill='url(%23paint1_radial_15251_63610)'/%3E%3Cpath d='M16.0001 7.9996c0 4.418-3.5815 7.9996-7.9995 7.9996S.001 12.4176.001 7.9996 3.5825 0 8.0006 0C12.4186 0 16 3.5815 16 7.9996Z' fill='url(%23paint2_radial_15251_63610)' fill-opacity='.5'/%3E%3Cpath d='M7.3014 3.8662a.6974.6974 0 0 1 .6974-.6977c.6742 0 1.2207.5465 1.2207 1.2206v1.7464a.101.101 0 0 0 .101.101h1.7953c.992 0 1.7232.9273 1.4917 1.892l-.4572 1.9047a2.301 2.301 0 0 1-2.2374 1.764H6.9185a.5752.5752 0 0 1-.5752-.5752V7.7384c0-.4168.097-.8278.2834-1.2005l.2856-.5712a3.6878 3.6878 0 0 0 .3893-1.6509l-.0002-.4496ZM4.367 7a.767.767 0 0 0-.7669.767v3.2598a.767.767 0 0 0 .767.767h.767a.3835.3835 0 0 0 .3835-.3835V7.3835A.3835.3835 0 0 0 5.134 7h-.767Z' fill='%23fff'/%3E%3Cdefs%3E%3CradialGradient id='paint1_radial_15251_63610' cx='0' cy='0' r='1' gradientUnits='userSpaceOnUse' gradientTransform='rotate(90 .0005 8) scale(7.99958)'%3E%3Cstop offset='.5618' stop-color='%230866FF' stop-opacity='0'/%3E%3Cstop offset='1' stop-color='%230866FF' stop-opacity='.1'/%3E%3C/radialGradient%3E%3CradialGradient id='paint2_radial_15251_63610' cx='0' cy='0' r='1' gradientUnits='userSpaceOnUse' gradientTransform='rotate(45 -4.5257 10.9237) scale(10.1818)'%3E%3Cstop offset='.3143' stop-color='%2302ADFC'/%3E%3Cstop offset='1' stop-color='%2302ADFC' stop-opacity='0'/%3E%3C/radialGradient%3E%3ClinearGradient id='paint0_linear_15251_63610' x1='2.3989' y1='2.3999' x2='13.5983' y2='13.5993' gradientUnits='userSpaceOnUse'%3E%3Cstop stop-color='%2302ADFC'/%3E%3Cstop offset='.5' stop-color='%230866FF'/%3E%3Cstop offset='1' stop-color='%232B7EFF'/%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E"
+                              />
+
+                              <span>{c.likes.length}</span>
+                            </button>
+                          )}
                         </div>
+
+                        {Array.isArray(replies[c.id]) &&
+                          replies[c.id].length > 0 && (
+                            <div className="ml-2 mt-1">
+                              {!showReplies[c.id] ? (
+                                <button
+                                  onClick={() =>
+                                    setShowReplies((prev) => ({
+                                      ...prev,
+                                      [c.id]: true,
+                                    }))
+                                  }
+                                  className="text-[13px] font-semibold text-[#65676b] dark:text-[#b0b3b8] hover:underline cursor-pointer"
+                                >
+                                  View {replies[c.id].length} repl
+                                  {replies[c.id].length === 1 ? "y" : "ies"}
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() =>
+                                    setShowReplies((prev) => ({
+                                      ...prev,
+                                      [c.id]: false,
+                                    }))
+                                  }
+                                  className="text-[13px] font-semibold text-[#65676b] dark:text-[#b0b3b8] hover:underline cursor-pointer"
+                                >
+                                  Hide replies
+                                </button>
+                              )}
+                            </div>
+                          )}
+
+                        {showReplies[c.id] && Array.isArray(replies[c.id]) && (
+                          <div className="mt-2 ml-2 flex flex-col gap-2">
+                            {replies[c.id].map((reply) => {
+                              const replyName = reply.authorName || "User";
+
+                              return (
+                                <div
+                                  key={reply.id}
+                                  className="flex items-start gap-2"
+                                >
+                                  <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
+                                    {reply.authorPhoto ? (
+                                      <img
+                                        src={reply.authorPhoto}
+                                        alt={replyName}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[12px] font-semibold">
+                                        {replyName[0]?.toUpperCase() || "U"}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div>
+                                    <div className="bg-[#f0f2f5] dark:bg-[#3a3b3c] rounded-2xl px-3 py-2 inline-block">
+                                      <p className="text-[13px] font-bold text-[#050505] dark:text-[#e4e6eb]">
+                                        {replyName}
+                                      </p>
+
+                                      <p className="text-[15px] text-[#050505] dark:text-[#e4e6eb]">
+                                        {reply.text}
+                                      </p>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 mt-1 px-2">
+                                      <span className="text-[12px] text-[#65676b] dark:text-[#b0b3b8]">
+                                        <TimeAgoText date={reply.createdAt} />
+                                      </span>
+
+                                      <button className="text-[12px] font-bold text-[#65676b] dark:text-[#b0b3b8] cursor-pointer">
+                                        Like
+                                      </button>
+
+                                      <button
+                                        onClick={() => setReplyingTo(c.id)}
+                                        className="text-[12px] font-bold text-[#65676b] dark:text-[#b0b3b8] cursor-pointer"
+                                      >
+                                        Reply
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {replyingTo === c.id && (
+                          <div className="mt-2 ml-2 flex items-start gap-2">
+                            <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
+                              {safeCurrentUserPhoto ? (
+                                <img
+                                  src={safeCurrentUserPhoto}
+                                  alt={safeCurrentUserName}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[12px] font-semibold">
+                                  {safeCurrentUserName[0]?.toUpperCase() || "U"}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="relative flex-1 bg-[#f0f2f5] dark:bg-[#3a3b3c] rounded-2xl px-3 py-2 pr-10">
+                              <input
+                                value={replyText[c.id] || ""}
+                                onChange={(e) =>
+                                  setReplyText((prev) => ({
+                                    ...prev,
+                                    [c.id]: e.target.value,
+                                  }))
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && !submittingReply) {
+                                    handleSubmitReply(c.id);
+                                  }
+                                }}
+                                placeholder={`Reply to ${c.authorName || "User"}...`}
+                                className="w-full bg-transparent outline-none text-[15px] text-[#050505] dark:text-[#e4e6eb] placeholder-[#65676b] dark:placeholder-[#b0b3b8]"
+                                autoFocus
+                              />
+
+                              {replyText[c.id]?.trim() && (
+                                <button
+                                  onClick={() => handleSubmitReply(c.id)}
+                                  disabled={submittingReply === c.id}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1877f2] font-bold disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                                >
+                                  ➤
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -834,7 +1411,7 @@ export default function PostCard({
                   <button
                     onClick={handleSubmitComment}
                     disabled={submitting}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1877f2] font-bold disabled:opacity-50"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1877f2] font-bold disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                   >
                     ➤
                   </button>
@@ -861,7 +1438,7 @@ export default function PostCard({
 
               <button
                 onClick={() => setShowLikesPopup(false)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#e4e6ea] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center text-[30px] leading-none text-[#65676b] dark:text-[#b0b3b8]"
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#e4e6ea] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center text-[30px] leading-none text-[#65676b] dark:text-[#b0b3b8] cursor-pointer"
               >
                 ×
               </button>
@@ -882,7 +1459,7 @@ export default function PostCard({
                     <a
                       key={user.uid}
                       href={`/profile/${user.uid}`}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c]"
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] cursor-pointer"
                     >
                       <div className="w-11 h-11 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
                         {user.photoURL ? (
@@ -926,7 +1503,7 @@ export default function PostCard({
 
               <button
                 onClick={() => setShowSharePopup(false)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center cursor-pointer"
               >
                 <span className="text-[32px] leading-none text-[#050505] dark:text-[#e4e6eb] font-light">
                   ×
@@ -957,26 +1534,12 @@ export default function PostCard({
                     </p>
 
                     <div className="flex items-center gap-1 mt-1">
-                      <button className="h-[24px] px-2 rounded-md bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] text-[13px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
+                      <button className="h-[24px] px-2 rounded-md bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] text-[13px] font-semibold text-[#050505] dark:text-[#e4e6eb] cursor-pointer">
                         Feed
                       </button>
 
-                      <button className="h-[24px] px-2 rounded-md bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center gap-1 text-[13px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                          className="w-3.5 h-3.5"
-                        >
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm6.93 6h-2.95a15.7 15.7 0 00-1.38-3.56A8.05 8.05 0 0118.93 8zM12 4.04c.83 1.2 1.48 2.52 1.87 3.96h-3.74A13.4 13.4 0 0112 4.04zM4.26 14a8.2 8.2 0 010-4h3.35a16.8 16.8 0 000 4H4.26zm.81 2h2.95c.32 1.25.79 2.45 1.38 3.56A8.05 8.05 0 015.07 16zm2.95-8H5.07A8.05 8.05 0 019.4 4.44 15.7 15.7 0 008.02 8zM12 19.96A13.4 13.4 0 0110.13 16h3.74A13.4 13.4 0 0112 19.96zM14.3 14H9.7a14.7 14.7 0 010-4h4.6a14.7 14.7 0 010 4zm.3 5.56c.59-1.11 1.06-2.31 1.38-3.56h2.95a8.05 8.05 0 01-4.33 3.56zM16.39 14a16.8 16.8 0 000-4h3.35a8.2 8.2 0 010 4h-3.35z" />
-                        </svg>
+                      <button className="h-[24px] px-2 rounded-md bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center gap-1 text-[13px] font-semibold text-[#050505] dark:text-[#e4e6eb] cursor-pointer">
                         Public
-                        <svg
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                          className="w-3.5 h-3.5"
-                        >
-                          <path d="M5.5 7.5L10 12l4.5-4.5h-9z" />
-                        </svg>
                       </button>
                     </div>
                   </div>
@@ -991,39 +1554,17 @@ export default function PostCard({
                   />
 
                   <button className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#bcc0c4"
-                      strokeWidth="1.8"
-                      className="w-7 h-7"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <circle
-                        cx="8.5"
-                        cy="10"
-                        r="1"
-                        fill="#bcc0c4"
-                        stroke="none"
-                      />
-                      <circle
-                        cx="15.5"
-                        cy="10"
-                        r="1"
-                        fill="#bcc0c4"
-                        stroke="none"
-                      />
-                      <path d="M8 14c1 1.4 2.3 2.1 4 2.1s3-.7 4-2.1" />
-                    </svg>
+                    🙂
                   </button>
                 </div>
 
                 <div className="flex justify-end mt-1">
                   <button
-                    onClick={() => setShowSharePopup(false)}
-                    className="w-[150px] h-[36px] rounded-md bg-[#1877f2] hover:bg-[#166fe5] text-white text-[15px] font-semibold"
+                    onClick={handleSharePost}
+                    disabled={sharing}
+                    className="w-[150px] h-[36px] rounded-md bg-[#1877f2] hover:bg-[#166fe5] text-white text-[15px] font-semibold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Share now
+                    {sharing ? "Sharing..." : "Share now"}
                   </button>
                 </div>
               </div>
@@ -1036,14 +1577,8 @@ export default function PostCard({
                     Send in Messenger
                   </h3>
 
-                  <button className="w-9 h-9 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      className="w-5 h-5 text-[#050505] dark:text-[#e4e6eb]"
-                    >
-                      <path d="M12 2C6 2 2 6 2 11.5c0 3 1.2 5.5 3.2 7.2l.1 2c0 .5.5.9 1 .7l2-1c.2 0 .4-.1.6 0 .6.2 1.2.3 1.9.3 6 0 10-4 10-9.5S18 2 12 2z" />
-                    </svg>
+                  <button className="w-9 h-9 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center cursor-pointer">
+                    M
                   </button>
                 </div>
 
@@ -1081,7 +1616,7 @@ export default function PostCard({
                     </div>
                   )}
 
-                  <button className="absolute right-0 top-[18px] w-12 h-12 rounded-full bg-white dark:bg-[#3a3b3c] shadow-[0_2px_8px_rgba(0,0,0,0.25)] flex items-center justify-center hover:bg-[#f0f2f5] dark:hover:bg-[#4e4f50]">
+                  <button className="absolute right-0 top-[18px] w-12 h-12 rounded-full bg-white dark:bg-[#3a3b3c] shadow-[0_2px_8px_rgba(0,0,0,0.25)] flex items-center justify-center hover:bg-[#f0f2f5] dark:hover:bg-[#4e4f50] cursor-pointer">
                     <span className="text-[28px] leading-none text-[#65676b] dark:text-[#b0b3b8]">
                       ›
                     </span>
@@ -1105,7 +1640,7 @@ export default function PostCard({
                   ].map(([label, icon]) => (
                     <button
                       key={label}
-                      className="flex flex-col items-center gap-2"
+                      className="flex flex-col items-center gap-2 cursor-pointer"
                     >
                       <div className="w-[58px] h-[58px] rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center text-[24px] font-bold text-[#050505] dark:text-[#e4e6eb]">
                         {icon}
@@ -1118,6 +1653,307 @@ export default function PostCard({
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditPost && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-[32px] px-4"
+          onClick={closeEditPost}
+        >
+          <div
+            className="w-[500px] max-w-[calc(100vw-24px)] max-h-[92vh] bg-white dark:bg-[#242526] rounded-lg shadow-[0_12px_28px_rgba(0,0,0,0.35)] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative h-[60px] flex items-center justify-center border-b border-[#e4e6eb] dark:border-[#3a3b3c]">
+              <h2 className="text-[20px] font-bold text-[#050505] dark:text-[#e4e6eb]">
+                Edit post
+              </h2>
+
+              <button
+                onClick={closeEditPost}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center cursor-pointer"
+              >
+                <span className="text-[34px] leading-none text-[#65676b] dark:text-[#b0b3b8] font-light">
+                  ×
+                </span>
+              </button>
+            </div>
+
+            <div className="px-4 pt-3 pb-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
+                  {safeCurrentUserPhoto ? (
+                    <img
+                      src={safeCurrentUserPhoto}
+                      alt={safeCurrentUserName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
+                      {safeCurrentUserName[0]?.toUpperCase() || "G"}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-[15px] leading-[18px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
+                    {safeCurrentUserName}
+                  </p>
+
+                  <button
+                    type="button"
+                    className="mt-1 h-[24px] px-2 rounded-md bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center gap-1 text-[13px] font-semibold text-[#050505] dark:text-[#e4e6eb] cursor-pointer"
+                  >
+                    Friends
+                    <svg
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="w-3.5 h-3.5"
+                    >
+                      <path d="M5.5 7.5L10 12l4.5-4.5h-9z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                placeholder={`What's on your mind, ${
+                  safeCurrentUserName.split(" ")[0] || "you"
+                }?`}
+                className="w-full min-h-[150px] resize-none border-none outline-none bg-transparent text-[24px] leading-[30px] text-[#050505] dark:text-[#e4e6eb] placeholder-[#65676b] dark:placeholder-[#b0b3b8]"
+                autoFocus
+              />
+
+              {(editPreviewURL || (postImages.length > 0 && !removeMedia)) && (
+                <div className="relative rounded-lg overflow-hidden mb-3 bg-[#f0f2f5] dark:bg-[#18191a]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (editPreviewURL) {
+                        URL.revokeObjectURL(editPreviewURL);
+                      }
+
+                      setEditFile(null);
+                      setEditPreviewURL(null);
+                      setRemoveMedia(true);
+                    }}
+                    className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-[#3a3b3c]/90 hover:bg-[#4e4f50] flex items-center justify-center cursor-pointer"
+                  >
+                    <span className="text-[28px] leading-none text-white">
+                      ×
+                    </span>
+                  </button>
+
+                  <img
+                    src={editPreviewURL || postImages[0]}
+                    alt="Preview"
+                    className="w-full max-h-[260px] object-cover"
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  type="button"
+                  className="overflow-hidden hover:brightness-95 cursor-pointer"
+                >
+                  <img
+                    src="https://www.facebook.com/images/composer/SATP_Aa_square-2x.png"
+                    alt=""
+                    width={38}
+                    height={38}
+                    className="h-[38px] w-[38px]"
+                  />
+                </button>
+
+                <button
+                  type="button"
+                  className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer"
+                >
+                  <i
+                    data-visualcompletion="css-img"
+                    aria-label="Emoji"
+                    role="img"
+                    className="inline-block h-6 w-6 bg-no-repeat"
+                    style={{
+                      backgroundImage:
+                        'url("https://static.xx.fbcdn.net/rsrc.php/yU/r/7-A4siEWt6h.webp?_nc_eui2=AeHnnEPqcLjHprBUJ8t1o2h-UIdaYtQI3JpQh1pi1AjcmilivPILWWw29H42V5q1c7XKf6n3zhSsD-0jpast-dGv")',
+                      backgroundPosition: "0px -87px",
+                      backgroundSize: "auto",
+                    }}
+                  />
+                </button>
+              </div>
+
+              <div className="h-[58px] border border-[#ced0d4] dark:border-[#3a3b3c] rounded-lg flex items-center justify-between px-4 mb-4">
+                <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
+                  Add to your post
+                </span>
+
+                <div className="flex items-center gap-2 sm:gap-1 ss:gap-0.5">
+                  <label className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={(e) =>
+                        handleEditFileSelect(e.target.files?.[0])
+                      }
+                    />
+
+                    <img
+                      src="https://static.xx.fbcdn.net/rsrc.php/yX/r/8_VnccIZfRa.webp?_nc_eui2=AeEBL_cDNQc_opfChelZCbEdtIBijxuqePS0gGKPG6p49LW21NmMjaD28WK2ZKAOosrOzVdwnBi_NPOPs--Ml1fS"
+                      alt=""
+                      width={24}
+                      height={24}
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer"
+                  >
+                    <img
+                      src="https://static.xx.fbcdn.net/rsrc.php/yO/r/UnRgJelt7Mg.webp?_nc_eui2=AeH3mMt4LYRscGUGKvgZCsIBKt0A9dA7yJwq3QD10DvInBNquo9K_WwC0K1twrWSXreEcFCtUIJTRs0W6Emac0Lz"
+                      alt=""
+                      width={24}
+                      height={24}
+                    />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer"
+                  >
+                    <img
+                      src="https://static.xx.fbcdn.net/rsrc.php/ya/r/XlpCJi9w2HF.webp?_nc_eui2=AeFR_6-Dj0VGhlXhb726y36TwIB16X8qm_nAgHXpfyqb-SfUGHSXRttsYM0-5XyRnZeMi249piBh_p9hoILb97g0"
+                      alt=""
+                      width={24}
+                      height={24}
+                    />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer"
+                  >
+                    <img
+                      src="https://static.xx.fbcdn.net/rsrc.php/yC/r/glLNpLPayUm.webp?_nc_eui2=AeEMvF9L-7Jlf_owFIM6KkbLgn8XdsByLzuCfxd2wHIvOyfg0x9i4tBzEoo2L8kjgnqla5IFgpX1rxAl3nmlLctF"
+                      alt=""
+                      width={24}
+                      height={24}
+                    />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer ss:hidden"
+                  >
+                    <img
+                      src="https://static.xx.fbcdn.net/rsrc.php/y1/r/pfuEaSjPXaI.webp?_nc_eui2=AeGyXLDFAYbp3nZBlmqYWLQbThQzZWtrp9hOFDNla2un2PIp8NEUHpv7utEFL54U3rI6NZ0e_-z44zC0PtOyUMdq"
+                      alt=""
+                      width={24}
+                      height={24}
+                    />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer sm:w-5 sm:h-5 gg:hidden"
+                  >
+                    <i
+                      data-visualcompletion="css-img"
+                      className="inline-block w-6 h-6 bg-no-repeat"
+                      style={{
+                        backgroundImage:
+                          'url("https://static.xx.fbcdn.net/rsrc.php/yo/r/CZJCF7JUHD_.webp?_nc_eui2=AeGavi4Im7xFB0BJ-DPgl984K5z5Z-L5U4ErnPln4vlTgbRAqV9-ETbQcu7c1f2PA1gxjx2wt5WDfnWXCk8eQUbZ")',
+                        backgroundPosition: "0px -83px",
+                        backgroundSize: "auto",
+                      }}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={handleSaveEditPost}
+                disabled={
+                  editing || (!editText.trim() && !editFile && removeMedia)
+                }
+                className="w-full h-10 rounded-md bg-[#1877f2] hover:bg-[#166fe5] disabled:bg-[#e4e6eb] dark:disabled:bg-[#3a3b3c] disabled:text-[#bcc0c4] text-white text-[15px] font-semibold cursor-pointer disabled:cursor-not-allowed"
+              >
+                {editing ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCommentLikesPopup && (
+        <div
+          className="fixed inset-0 z-50 bg-white/70 dark:bg-black/60 flex items-center justify-center px-4"
+          onClick={() => setShowCommentLikesPopup(false)}
+        >
+          <div
+            className="w-full max-w-[500px] max-h-[80vh] bg-white dark:bg-[#242526] rounded-xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative h-[60px] flex items-center justify-center border-b border-[#e4e6ea] dark:border-[#3a3b3c]">
+              <h2 className="text-[20px] font-bold text-[#050505] dark:text-[#e4e6eb]">
+                Likes
+              </h2>
+
+              <button
+                onClick={() => setShowCommentLikesPopup(false)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#e4e6ea] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center text-[30px] leading-none text-[#65676b] dark:text-[#b0b3b8] cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-3 overflow-y-auto max-h-[calc(80vh-60px)]">
+              {commentLikesLoading ? (
+                <div className="py-6 text-center text-[15px] text-[#65676b] dark:text-[#b0b3b8]">
+                  Loading...
+                </div>
+              ) : commentLikedUsers.length === 0 ? (
+                <div className="py-6 text-center text-[15px] text-[#65676b] dark:text-[#b0b3b8]">
+                  No likes yet.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {commentLikedUsers.map((user) => (
+                    <a
+                      key={user.uid}
+                      href={`/profile/${user.uid}`}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] cursor-pointer"
+                    >
+                      <div className="w-11 h-11 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
+                        {user.photoURL ? (
+                          <img
+                            src={user.photoURL}
+                            alt={user.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
+                            {user.name[0]?.toUpperCase() || "U"}
+                          </div>
+                        )}
+                      </div>
+
+                      <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
+                        {user.name}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

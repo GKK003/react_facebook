@@ -10,29 +10,46 @@ type Props = {
   user: User | null;
   postText: string;
   setPostText: (value: string) => void;
-  postFile: File | null;
-  setPostFile: (value: File | null) => void;
-  previewURL: string | null;
-  setPreviewURL: (value: string | null) => void;
+  selectedFiles: File[];
+  setSelectedFiles: (value: File[]) => void;
+  previewURLs: string[];
+  setPreviewURLs: (value: string[]) => void;
   posting: boolean;
   closeCreatePost: () => void;
   handleCreatePost: () => void;
-  handleFileSelect: (file: File | undefined) => void;
+  handleFileSelect: (files: FileList | null) => void;
 };
 
 export default function CreatePostPopup({
   user,
   postText,
   setPostText,
-  postFile,
-  setPostFile,
-  previewURL,
-  setPreviewURL,
+  selectedFiles,
+  setSelectedFiles,
+  previewURLs,
+  setPreviewURLs,
   posting,
   closeCreatePost,
   handleCreatePost,
   handleFileSelect,
 }: Props) {
+  const removePreviews = () => {
+    previewURLs.forEach((url) => URL.revokeObjectURL(url));
+    setSelectedFiles([]);
+    setPreviewURLs([]);
+  };
+
+  const imageBoxClass = (count: number, index: number) => {
+    if (count === 1) return "h-[360px]";
+    if (count === 2) return "h-[260px]";
+    if (count === 3 && index === 0) return "h-[260px] row-span-2";
+    if (count === 3) return "h-[128px]";
+    if (count === 4) return "h-[180px]";
+    if (count === 5 && index < 2) return "h-[180px]";
+    if (count === 5) return "h-[118px]";
+    return "h-[140px]";
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 bg-white/70 dark:bg-black/60 backdrop-blur-[1px] flex items-start justify-center pt-[80px] px-4"
@@ -49,7 +66,7 @@ export default function CreatePostPopup({
 
           <button
             onClick={closeCreatePost}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center transition-colors cursor-pointer"
           >
             <span className="text-[34px] leading-none text-[#65676b] dark:text-[#b0b3b8] font-light">
               ×
@@ -110,32 +127,36 @@ export default function CreatePostPopup({
             autoFocus
           />
 
-          {previewURL && postFile && (
+          {previewURLs.length > 0 && (
             <div className="relative rounded-lg overflow-hidden border border-[#ced0d4] dark:border-[#3a3b3c] mb-3">
               <button
-                onClick={() => {
-                  setPostFile(null);
-                  if (previewURL) URL.revokeObjectURL(previewURL);
-                  setPreviewURL(null);
-                }}
-                className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white dark:bg-[#3a3b3c] shadow flex items-center justify-center text-[22px] text-[#050505] dark:text-[#e4e6eb]"
+                onClick={removePreviews}
+                className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white dark:bg-[#3a3b3c] shadow flex items-center justify-center text-[22px] text-[#050505] dark:text-[#e4e6eb] cursor-pointer"
               >
                 ×
               </button>
 
-              {postFile.type.startsWith("video/") ? (
-                <video
-                  src={previewURL}
-                  controls
-                  className="w-full max-h-[190px] object-cover"
-                />
-              ) : (
-                <img
-                  src={previewURL}
-                  alt="Preview"
-                  className="w-full max-h-[260px] object-cover"
-                />
-              )}
+              <div
+                className={`grid gap-1 bg-white dark:bg-[#242526] ${
+                  previewURLs.length === 1 ? "grid-cols-1" : "grid-cols-2"
+                }`}
+              >
+                {previewURLs.slice(0, 6).map((url, index) => (
+                  <div
+                    key={url}
+                    className={`relative overflow-hidden bg-[#f0f2f5] dark:bg-[#18191a] ${imageBoxClass(
+                      previewURLs.length,
+                      index,
+                    )}`}
+                  >
+                    <img
+                      src={url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -181,9 +202,10 @@ export default function CreatePostPopup({
               <label className="w-9 h-9 rounded-full hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] flex items-center justify-center cursor-pointer">
                 <input
                   type="file"
-                  accept="image/*,video/*"
+                  accept="image/*"
+                  multiple
                   hidden
-                  onChange={(e) => handleFileSelect(e.target.files?.[0])}
+                  onChange={(e) => handleFileSelect(e.target.files)}
                 />
 
                 <img
@@ -247,8 +269,10 @@ export default function CreatePostPopup({
 
           <button
             onClick={handleCreatePost}
-            disabled={(!postText.trim() && !postFile) || posting}
-            className="w-full h-[40px] rounded-lg bg-[#1877f2] hover:bg-[#166fe5] disabled:bg-[#e4e6eb] dark:disabled:bg-[#3a3b3c] disabled:text-[#bcc0c4] dark:disabled:text-[#777] disabled:hover:bg-[#e4e6eb] dark:disabled:hover:bg-[#3a3b3c] disabled:cursor-not-allowed text-white text-[15px] font-semibold transition-colors"
+            disabled={
+              (!postText.trim() && selectedFiles.length === 0) || posting
+            }
+            className="w-full h-[40px] rounded-lg bg-[#1877f2] hover:bg-[#166fe5] disabled:bg-[#e4e6eb] dark:disabled:bg-[#3a3b3c] disabled:text-[#bcc0c4] dark:disabled:text-[#777] disabled:hover:bg-[#e4e6eb] dark:disabled:hover:bg-[#3a3b3c] disabled:cursor-not-allowed text-white text-[15px] font-semibold transition-colors cursor-pointer"
           >
             {posting ? "Posting..." : "Post"}
           </button>

@@ -63,7 +63,8 @@ const NAV_TABS = [
   },
   {
     id: "watch",
-    href: "",
+    href: "https://www.facebook.com/reel/?s=tab",
+    target: "_blank",
     icon: (active: boolean) => (
       <svg
         viewBox="0 0 24 24"
@@ -79,7 +80,9 @@ const NAV_TABS = [
   },
   {
     id: "marketplace",
-    href: "",
+    href: "https://www.facebook.com/marketplace/?ref=app_tab",
+    target: "_blank",
+
     icon: (active: boolean) => (
       <svg
         viewBox="0 0 24 24"
@@ -94,7 +97,9 @@ const NAV_TABS = [
   },
   {
     id: "groups",
-    href: "",
+    href: "https://www.facebook.com/groups/",
+    target: "_blank",
+
     icon: (active: boolean) => (
       <svg
         viewBox="0 0 24 24"
@@ -109,7 +114,8 @@ const NAV_TABS = [
   },
   {
     id: "gaming",
-    href: "",
+    href: "https://www.facebook.com/gaming/play/?store_visit_source=gaming_tab",
+    target: "_blank",
     icon: (active: boolean) => (
       <svg
         viewBox="0 0 24 24"
@@ -182,7 +188,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<UserResult[]>([]);
-  const [showResults, setShowResults] = useState(false);
+
   const [searching, setSearching] = useState(false);
 
   const [showSearchPopup, setShowSearchPopup] = useState(false);
@@ -252,7 +258,6 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
       const target = e.target as Node;
 
       if (searchRef.current && !searchRef.current.contains(target)) {
-        setShowResults(false);
       }
 
       if (
@@ -322,12 +327,10 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
 
     if (value.trim().length < 2) {
       setSearchResults([]);
-      setShowResults(true);
       return;
     }
 
     setSearching(true);
-    setShowResults(true);
 
     try {
       const snapshot = await getDocs(collection(db, "users"));
@@ -356,13 +359,10 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
     setShowMessenger(false);
     setShowNotifications(false);
     setShowProfileMenu(false);
-
-    setShowResults(true);
   };
 
   const closeSearchPopup = () => {
     setShowSearchPopup(false);
-    setShowResults(false);
     setSearchQuery("");
     setSearchResults([]);
   };
@@ -543,7 +543,10 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
               </svg>
             </button>
 
-            <div className="w-[240px] h-[40px] bg-[#f0f2f5] dark:bg-[#3a3b3c] rounded-full flex items-center gap-2 px-3 lg:hidden">
+            <button
+              onClick={openSearchPopup}
+              className="w-[240px] h-[40px] bg-[#f0f2f5] dark:bg-[#3a3b3c] rounded-full flex items-center gap-2 px-3 lg:hidden hover:bg-[#e4e6eb] dark:hover:bg-[#4a4b4c] text-left"
+            >
               <svg
                 viewBox="0 0 16 16"
                 width="16"
@@ -573,64 +576,10 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                   </g>
                 </g>
               </svg>
-
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                onFocus={() => setShowResults(true)}
-                placeholder="Search Facebook"
-                className="bg-transparent  outline-none text-[15px] text-[#050505] dark:text-[#e4e6eb] placeholder-[#8a8d91] dark:placeholder-[#b0b3b8] w-full"
-              />
-            </div>
-
-            {showResults && !showSearchPopup && (
-              <div className="absolute top-[44px] left-0 w-[360px] bg-[#f0f2f5] dark:bg-[#3a3b3c] rounded-lg shadow-xl py-2 z-50">
-                {searching ? (
-                  <div className="px-4 py-3 text-[14px] text-[#8a8d91]">
-                    Searching...
-                  </div>
-                ) : searchResults.length === 0 ? (
-                  <div className="px-4 py-3 text-[14px] text-[#8a8d91]">
-                    {searchQuery.trim().length < 2
-                      ? ""
-                      : `No results for "${searchQuery}"`}
-                  </div>
-                ) : (
-                  searchResults.map((u) => (
-                    <Link
-                      key={u.uid}
-                      href={`/profile/${u.uid}`}
-                      onClick={() => setShowResults(false)}
-                      className="flex items-center gap-3 px-3 py-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] transition-colors"
-                    >
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 flex-shrink-0">
-                        {u.photoURL ? (
-                          <Image
-                            src={u.photoURL}
-                            alt={u.firstName || "User"}
-                            width={40}
-                            height={40}
-                            className="w-full h-full object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                            {u.firstName?.[0]?.toUpperCase() || "U"}
-                          </div>
-                        )}
-                      </div>
-
-                      <div>
-                        <p className="text-[15px] font-semibold text-[#050505]">
-                          {u.firstName} {u.lastName}
-                        </p>
-                      </div>
-                    </Link>
-                  ))
-                )}
-              </div>
-            )}
+              <span className="text-[15px] text-[#8a8d91] dark:text-[#b0b3b8]">
+                Search Facebook
+              </span>
+            </button>
           </div>
         </div>
         <div className="flex items-center justify-center flex-1 gap-1 px-4 md:hidden">
@@ -638,6 +587,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
             <Link
               key={tab.id}
               href={tab.href}
+              target={tab.target}
               className={`relative flex items-center justify-center w-[116px] h-[48px] lg:w-[70px] lg:h-[40px] rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] ${
                 activePage === tab.id ? "border-[#1877f2]" : ""
               }`}
@@ -1431,14 +1381,6 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
               </button>
 
               <div className="flex-1 h-[46px] bg-[#f0f2f5] dark:bg-[#3a3b3c] rounded-full flex items-center gap-2 px-4">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="w-4 h-4 text-[#8a8d91] flex-shrink-0"
-                >
-                  <path d="M15.5 14h-.79l-.28-.27A6.5 6.5 0 109.5 16c1.6 0 3-.6 4.2-1.6l.3.3v.8l5 5L20.5 19l-5-5z" />
-                </svg>
-
                 <input
                   ref={searchPopupInputRef}
                   type="text"
@@ -1450,7 +1392,7 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
               </div>
             </div>
 
-            <div className="border-t border-[#e4e6eb] py-2 max-h-[calc(100vh-72px)] overflow-y-auto">
+            <div className=" py-2 max-h-[calc(100vh-72px)] overflow-y-auto">
               {searching ? (
                 <div className="px-4 py-3 text-[14px] text-[#8a8d91]">
                   Searching...

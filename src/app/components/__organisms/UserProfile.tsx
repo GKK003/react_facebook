@@ -24,6 +24,7 @@ import { auth, db } from "@/firebase/firebase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import Navbar from "@/app/components/__organisms/Navbar";
 import PostCard, { Post } from "@/app/components/__molecules/PostCard";
+import Link from "next/link";
 
 interface UserProfileData {
   firstName: string;
@@ -38,9 +39,16 @@ interface UserProfileData {
   photoURL?: string | null;
   coverPhotoURL?: string | null;
   bio?: string;
+  city?: string;
 }
 
 type RequestStatus = "none" | "pendingSent" | "pendingReceived" | "friends";
+
+type FriendCard = {
+  uid: string;
+  name: string;
+  photoURL: string | null;
+};
 
 export default function UserProfile() {
   const router = useRouter();
@@ -57,6 +65,8 @@ export default function UserProfile() {
 
   const [requestStatus, setRequestStatus] = useState<RequestStatus>("none");
   const [requestLoading, setRequestLoading] = useState(false);
+  const [acceptedSent, setAcceptedSent] = useState<any[]>([]);
+  const [acceptedReceived, setAcceptedReceived] = useState<any[]>([]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -172,6 +182,44 @@ export default function UserProfile() {
 
     return () => unsubSent();
   }, [authUser?.uid, uid]);
+
+  useEffect(() => {
+    if (!uid) {
+      setAcceptedSent([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "friendRequests"),
+      where("fromUid", "==", uid),
+      where("status", "==", "accepted"),
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      setAcceptedSent(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+
+    return () => unsub();
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) {
+      setAcceptedReceived([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "friendRequests"),
+      where("toUid", "==", uid),
+      where("status", "==", "accepted"),
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      setAcceptedReceived(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+
+    return () => unsub();
+  }, [uid]);
 
   const isOwnProfile = authUser?.uid === uid;
 
@@ -370,6 +418,28 @@ export default function UserProfile() {
     return <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#18191a]" />;
   }
 
+  const friendsMap = new Map<string, FriendCard>();
+
+  acceptedSent.forEach((request) => {
+    friendsMap.set(request.toUid, {
+      uid: request.toUid,
+      name: request.toName || "User",
+      photoURL: request.toPhoto || null,
+    });
+  });
+
+  acceptedReceived.forEach((request) => {
+    friendsMap.set(request.fromUid, {
+      uid: request.fromUid,
+      name: request.fromName || "User",
+      photoURL: request.fromPhoto || null,
+    });
+  });
+
+  const friends = Array.from(friendsMap.values()).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+
   return (
     <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#18191a]">
       <Navbar
@@ -474,6 +544,12 @@ export default function UserProfile() {
                     {profile.bio}
                   </p>
                 )}
+
+                {profile?.city && (
+                  <p className="text-[#606770] dark:text-[#b0b3b8] text-[15px] mt-1">
+                    Lives in {profile.city}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center gap-2 pb-2">
@@ -513,14 +589,16 @@ export default function UserProfile() {
           </div>
 
           <div className="border-t border-[#ced0d4] dark:border-[#3a3b3c] px-4 flex gap-1 sm:gap-0 sm:px-2 gg:px-0">
-            {["Posts", "About", "Friends", "Photos"].map((tab) => (
-              <button
-                key={tab}
-                className="px-4 py-3 text-[15px] font-semibold text-[#606770] dark:text-[#b0b3b8] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] rounded-lg transition-colors"
-              >
-                {tab}
-              </button>
-            ))}
+            {["All", "About", "Friends", "Photos", "Reels", "More"].map(
+              (tab) => (
+                <button
+                  key={tab}
+                  className="px-4 py-3 text-[15px] font-semibold text-[#606770] dark:text-[#b0b3b8] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] rounded-lg transition-colors cursor-pointer"
+                >
+                  {tab}
+                </button>
+              ),
+            )}
           </div>
         </div>
 
@@ -528,13 +606,13 @@ export default function UserProfile() {
           <div className="w-[360px] flex-shrink-0 lg:w-full">
             <div className="bg-white dark:bg-[#242526] rounded-lg shadow p-4">
               <h2 className="text-[20px] font-bold text-[#050505] dark:text-[#e4e6eb] mb-3">
-                Intro
+                Personal Details
               </h2>
 
               <div className="space-y-2 text-[15px] text-[#050505] dark:text-[#e4e6eb]">
                 {profile?.birthday && (
                   <div>
-                    Birthday: {profile.birthday.day}/{profile.birthday.month}/
+                    Birthday: {profile.birthday.day} {profile.birthday.month}{" "}
                     {profile.birthday.year}
                   </div>
                 )}
@@ -543,12 +621,70 @@ export default function UserProfile() {
                   <div className="capitalize">Gender: {profile.gender}</div>
                 )}
 
+                {profile?.city && <div>Lives in {profile.city}</div>}
+
                 {!profile?.birthday && !profile?.gender && (
                   <p className="text-[#8a8d91] dark:text-[#b0b3b8]">
-                    No intro information.
+                    No Personal information.
                   </p>
                 )}
               </div>
+            </div>
+
+            <div className="bg-white dark:bg-[#242526] rounded-lg shadow p-4 mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-[20px] font-bold text-[#050505] dark:text-[#e4e6eb]">
+                  Friends
+                </h2>
+
+                <Link
+                  href={`/profile/${uid}/friends`}
+                  className="text-[15px] text-[#1877f2] hover:underline cursor-pointer"
+                >
+                  See all friends
+                </Link>
+              </div>
+
+              <p className="text-[15px] text-[#65676b] dark:text-[#b0b3b8] mb-3">
+                {friends.length} friend{friends.length !== 1 ? "s" : ""}
+              </p>
+
+              {friends.length === 0 ? (
+                <p className="text-[15px] text-[#8a8d91] dark:text-[#b0b3b8]">
+                  No friends yet.
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {friends.slice(0, 9).map((friend) => (
+                    <Link
+                      key={friend.uid}
+                      href={`/profile/${friend.uid}`}
+                      className="cursor-pointer"
+                    >
+                      <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-300 dark:bg-[#3a3b3c]">
+                        {friend.photoURL ? (
+                          <Image
+                            src={friend.photoURL}
+                            alt={friend.name}
+                            width={110}
+                            height={110}
+                            className="w-full h-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[28px] font-bold">
+                            {friend.name[0]?.toUpperCase() || "U"}
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="mt-1 text-[13px] font-semibold text-[#050505] dark:text-[#e4e6eb] truncate">
+                        {friend.name}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

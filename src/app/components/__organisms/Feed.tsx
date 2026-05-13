@@ -46,8 +46,8 @@ export default function Feed() {
   const [postText, setPostText] = useState("");
   const [posting, setPosting] = useState(false);
 
-  const [postFile, setPostFile] = useState<File | null>(null);
-  const [previewURL, setPreviewURL] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewURLs, setPreviewURLs] = useState<string[]>([]);
 
   useEffect(() => {
     const q = query(collection(db, "stories"), orderBy("createdAt", "desc"));
@@ -111,13 +111,9 @@ export default function Feed() {
 
   const resetCreatePost = () => {
     setPostText("");
-    setPostFile(null);
-
-    if (previewURL) {
-      URL.revokeObjectURL(previewURL);
-    }
-
-    setPreviewURL(null);
+    previewURLs.forEach((url) => URL.revokeObjectURL(url));
+    setSelectedFiles([]);
+    setPreviewURLs([]);
   };
 
   const closeCreatePost = () => {
@@ -125,35 +121,35 @@ export default function Feed() {
     setShowCreatePost(false);
   };
 
-  const handleFileSelect = (file: File | undefined) => {
-    if (!file) return;
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files) return;
 
-    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-      alert("Please choose an image or video.");
-      return;
-    }
+    const imageFiles = Array.from(files).filter((file) =>
+      file.type.startsWith("image/"),
+    );
 
-    setPostFile(file);
+    if (imageFiles.length === 0) return;
 
-    if (previewURL) {
-      URL.revokeObjectURL(previewURL);
-    }
+    const nextFiles = [...selectedFiles, ...imageFiles].slice(0, 6);
 
-    setPreviewURL(URL.createObjectURL(file));
+    previewURLs.forEach((url) => URL.revokeObjectURL(url));
+
+    setSelectedFiles(nextFiles);
+    setPreviewURLs(nextFiles.map((file) => URL.createObjectURL(file)));
   };
 
   const handleCreatePost = async () => {
-    if ((!postText.trim() && !postFile) || !user) return;
+    if ((!postText.trim() && selectedFiles.length === 0) || !user) return;
 
     setPosting(true);
 
     try {
-      let mediaURL: string | null = null;
-      let mediaType: "image" | "video" | null = null;
+      let mediaURLs: string[] = [];
 
-      if (postFile) {
-        mediaType = postFile.type.startsWith("video/") ? "video" : "image";
-        mediaURL = await uploadToCloudinary(postFile);
+      if (selectedFiles.length > 0) {
+        mediaURLs = await Promise.all(
+          selectedFiles.map((file) => uploadToCloudinary(file)),
+        );
       }
 
       await addDoc(collection(db, "posts"), {
@@ -161,8 +157,9 @@ export default function Feed() {
         authorName: user.displayName || "Giorgi",
         authorPhoto: user.photoURL || null,
         text: postText.trim(),
-        mediaURL,
-        mediaType,
+        mediaURLs,
+        mediaURL: mediaURLs[0] || null,
+        mediaType: mediaURLs.length > 0 ? "image" : null,
         createdAt: serverTimestamp(),
         likes: [],
         comments: 0,
@@ -287,10 +284,10 @@ export default function Feed() {
           user={user}
           postText={postText}
           setPostText={setPostText}
-          postFile={postFile}
-          setPostFile={setPostFile}
-          previewURL={previewURL}
-          setPreviewURL={setPreviewURL}
+          selectedFiles={selectedFiles}
+          setSelectedFiles={setSelectedFiles}
+          previewURLs={previewURLs}
+          setPreviewURLs={setPreviewURLs}
           posting={posting}
           closeCreatePost={closeCreatePost}
           handleCreatePost={handleCreatePost}

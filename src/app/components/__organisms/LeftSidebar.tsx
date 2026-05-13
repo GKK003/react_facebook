@@ -40,7 +40,8 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
       </Link>
 
       <Link
-        href=""
+        href="https://www.meta.ai/?utm_source=facebook_bookmarks"
+        target="_blank"
         className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] dark:hover:bg-[#3a3b3c] transition-colors"
       >
         <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
@@ -90,7 +91,8 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
       </Link>
 
       <Link
-        href=""
+        href="https://www.facebook.com/onthisday/?source=bookmark"
+        target="_blank"
         className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] dark:hover:bg-[#3a3b3c] transition-colors"
       >
         <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
@@ -140,8 +142,9 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
       </Link>
 
       <Link
-        href="/groups"
-        className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] dark:hover:bg-[#3a3b3c] transition-colors"
+        href="https://www.facebook.com/groups/?ref=bookmarks"
+        target="_blank"
+        className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] dark:hover:bg-[#3a3b3c] transition-colors cursor-pointer"
       >
         <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
           <i
@@ -165,7 +168,8 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
       </Link>
 
       <Link
-        href=""
+        href="https://www.facebook.com/reel/?s=tab"
+        target="_blank"
         className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] dark:hover:bg-[#3a3b3c] transition-colors"
       >
         <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
@@ -190,7 +194,8 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
       </Link>
 
       <Link
-        href=""
+        href="https://www.facebook.com/marketplace/?ref=bookmark"
+        target="_blank"
         className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#e4e6ea] dark:hover:bg-[#3a3b3c] transition-colors"
       >
         <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">

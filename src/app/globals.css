@@ -8,6 +8,7 @@
 
 body {
   font-family: "Facebook Sans";
+  background-color: #18191a;
 }
 
 @theme {
@@ -20,7 +21,11 @@ body {
 @custom-variant xx (@media (max-width: 1290px));
 @custom-variant lg (@media (max-width: 1100px));
 @custom-variant md (@media (max-width: 800px));
+@custom-variant gh (@media (max-width: 700px));
 @custom-variant sm (@media (max-width: 630px));
+@custom-variant sd (@media (max-width: 580px));
+@custom-variant gl (@media (max-width: 470px));
+@custom-variant sl (@media (max-width: 380px));
 @custom-variant gg (@media (max-width: 450px));
 @custom-variant ss (@media (max-width: 398px));
 

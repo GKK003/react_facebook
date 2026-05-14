@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/firebase/firebase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
@@ -26,40 +26,108 @@ interface StoriesRowProps {
   stories?: Story[];
 }
 
+type StoryBucket = {
+  authorId: string;
+  authorName: string;
+  authorPhoto: string | null;
+  thumbnailURL: string;
+  stories: Story[];
+};
+
 export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
-  const [activeStory, setActiveStory] = useState<Story | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeBucket, setActiveBucket] = useState<StoryBucket | null>(null);
+  const [activeBucketIndex, setActiveBucketIndex] = useState(0);
+  const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const openStory = (story: Story, index: number) => {
-    setActiveStory(story);
-    setActiveIndex(index);
+  const storyBuckets = useMemo(() => {
+    const map = new Map<string, StoryBucket>();
+
+    stories.forEach((story) => {
+      const existing = map.get(story.authorId);
+
+      if (existing) {
+        existing.stories.push(story);
+        return;
+      }
+
+      map.set(story.authorId, {
+        authorId: story.authorId,
+        authorName: story.authorName || "User",
+        authorPhoto: story.authorPhoto || null,
+        thumbnailURL: story.imageURL,
+        stories: [story],
+      });
+    });
+
+    return Array.from(map.values()).map((bucket) => ({
+      ...bucket,
+      stories: bucket.stories.sort((a, b) => {
+        const aTime = a.createdAt?.toMillis?.() || 0;
+        const bTime = b.createdAt?.toMillis?.() || 0;
+        return aTime - bTime;
+      }),
+      thumbnailURL:
+        bucket.stories[bucket.stories.length - 1]?.imageURL ||
+        bucket.thumbnailURL,
+    }));
+  }, [stories]);
+
+  const activeStory = activeBucket?.stories[activeStoryIndex] || null;
+
+  const openBucket = (bucket: StoryBucket, index: number) => {
+    setActiveBucket(bucket);
+    setActiveBucketIndex(index);
+    setActiveStoryIndex(0);
     setProgress(0);
   };
 
   const closeStory = () => {
-    setActiveStory(null);
+    setActiveBucket(null);
+    setActiveBucketIndex(0);
+    setActiveStoryIndex(0);
     setProgress(0);
   };
 
   const goNext = () => {
-    if (activeIndex < stories.length - 1) {
-      const nextIndex = activeIndex + 1;
-      setActiveIndex(nextIndex);
-      setActiveStory(stories[nextIndex]);
+    if (!activeBucket) return;
+
+    if (activeStoryIndex < activeBucket.stories.length - 1) {
+      setActiveStoryIndex((prev) => prev + 1);
       setProgress(0);
-    } else {
-      closeStory();
+      return;
     }
+
+    if (activeBucketIndex < storyBuckets.length - 1) {
+      const nextBucketIndex = activeBucketIndex + 1;
+      setActiveBucket(storyBuckets[nextBucketIndex]);
+      setActiveBucketIndex(nextBucketIndex);
+      setActiveStoryIndex(0);
+      setProgress(0);
+      return;
+    }
+
+    closeStory();
   };
 
   const goPrev = () => {
-    if (activeIndex > 0) {
-      const prevIndex = activeIndex - 1;
-      setActiveIndex(prevIndex);
-      setActiveStory(stories[prevIndex]);
+    if (!activeBucket) return;
+
+    if (activeStoryIndex > 0) {
+      setActiveStoryIndex((prev) => prev - 1);
+      setProgress(0);
+      return;
+    }
+
+    if (activeBucketIndex > 0) {
+      const prevBucketIndex = activeBucketIndex - 1;
+      const prevBucket = storyBuckets[prevBucketIndex];
+
+      setActiveBucket(prevBucket);
+      setActiveBucketIndex(prevBucketIndex);
+      setActiveStoryIndex(Math.max(prevBucket.stories.length - 1, 0));
       setProgress(0);
     }
   };
@@ -140,13 +208,12 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
               className="w-[112px] h-[200px] rounded-xl overflow-hidden relative cursor-pointer group bg-white shadow-sm disabled:opacity-70"
             >
               <div className="w-full h-full bg-[#e4e6ea] overflow-hidden relative flex items-start">
-                {" "}
                 {user?.photoURL ? (
                   <Image
                     src={user.photoURL}
                     alt="Your photo"
                     fill
-                    className=" object-cover object-top group-hover:scale-105 transition-transform h-full"
+                    className="object-cover object-top group-hover:scale-105 transition-transform h-full"
                     unoptimized
                   />
                 ) : (
@@ -180,35 +247,35 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
             />
           </SwiperSlide>
 
-          {stories.length === 0
+          {storyBuckets.length === 0
             ? [1, 2, 3, 4].map((i) => (
                 <SwiperSlide key={i} style={{ width: "112px" }}>
                   <div className="w-[112px] h-[200px] rounded-xl bg-[#e4e6ea] animate-pulse" />
                 </SwiperSlide>
               ))
-            : stories.map((story, index) => (
-                <SwiperSlide key={story.id} style={{ width: "112px" }}>
+            : storyBuckets.map((bucket, index) => (
+                <SwiperSlide key={bucket.authorId} style={{ width: "112px" }}>
                   <button
                     type="button"
-                    onClick={() => openStory(story, index)}
-                    className="w-[112px] h-[200px] rounded-xl overflow-hidden relative cursor-pointer group text-left"
+                    onClick={() => openBucket(bucket, index)}
+                    className="w-[112px] h-[200px] rounded-xl overflow-hidden relative cursor-pointer group text-left bg-[#e4e6ea]"
                   >
                     <div className="absolute inset-0 bg-[#b0b3b8]">
                       <Image
-                        src={story.imageURL}
-                        alt={story.authorName}
+                        src={bucket.thumbnailURL}
+                        alt={bucket.authorName}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform"
                         unoptimized
                       />
-                      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60" />
+                      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/65" />
                     </div>
 
                     <div className="absolute top-2 left-2 w-9 h-9 rounded-full border-4 border-[#1877f2] overflow-hidden bg-gray-400">
-                      {story.authorPhoto ? (
+                      {bucket.authorPhoto ? (
                         <Image
-                          src={story.authorPhoto}
-                          alt={story.authorName}
+                          src={bucket.authorPhoto}
+                          alt={bucket.authorName}
                           width={36}
                           height={36}
                           className="w-full h-full object-cover"
@@ -216,14 +283,14 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
                         />
                       ) : (
                         <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[13px] font-bold">
-                          {story.authorName?.[0]?.toUpperCase() || "U"}
+                          {bucket.authorName?.[0]?.toUpperCase() || "U"}
                         </div>
                       )}
                     </div>
 
                     <div className="absolute bottom-2 left-2 right-2">
                       <span className="text-white text-[13px] font-semibold line-clamp-2 drop-shadow">
-                        {story.authorName}
+                        {bucket.authorName}
                       </span>
                     </div>
                   </button>
@@ -244,7 +311,7 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
         </button>
       </div>
 
-      {activeStory && (
+      {activeBucket && activeStory && (
         <div
           className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
           onClick={closeStory}
@@ -254,18 +321,18 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="absolute top-2 left-2 right-2 z-20 flex gap-1">
-              {stories.map((_, i) => (
+              {activeBucket.stories.map((story, i) => (
                 <div
-                  key={i}
+                  key={story.id}
                   className="flex-1 h-[3px] rounded-full bg-white/40"
                 >
                   <div
                     className="h-full rounded-full bg-white transition-all duration-100"
                     style={{
                       width:
-                        i < activeIndex
+                        i < activeStoryIndex
                           ? "100%"
-                          : i === activeIndex
+                          : i === activeStoryIndex
                             ? `${progress}%`
                             : "0%",
                     }}
@@ -276,10 +343,10 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
 
             <div className="absolute top-6 left-3 z-20 flex items-center gap-2">
               <div className="w-9 h-9 rounded-full border-2 border-white overflow-hidden bg-gray-400">
-                {activeStory.authorPhoto ? (
+                {activeBucket.authorPhoto ? (
                   <Image
-                    src={activeStory.authorPhoto}
-                    alt={activeStory.authorName}
+                    src={activeBucket.authorPhoto}
+                    alt={activeBucket.authorName}
                     width={36}
                     height={36}
                     className="w-full h-full object-cover"
@@ -287,13 +354,13 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
                   />
                 ) : (
                   <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[13px] font-bold">
-                    {activeStory.authorName?.[0]?.toUpperCase() || "U"}
+                    {activeBucket.authorName?.[0]?.toUpperCase() || "U"}
                   </div>
                 )}
               </div>
 
               <span className="text-white text-[14px] font-semibold drop-shadow">
-                {activeStory.authorName}
+                {activeBucket.authorName}
               </span>
             </div>
 
@@ -310,7 +377,7 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
               <div className="relative w-full h-[82%] bg-[#2f3031]">
                 <Image
                   src={activeStory.imageURL}
-                  alt={activeStory.authorName}
+                  alt={activeBucket.authorName}
                   fill
                   className="object-contain"
                   unoptimized
@@ -329,7 +396,7 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
             />
           </div>
 
-          {activeIndex > 0 && (
+          {(activeBucketIndex > 0 || activeStoryIndex > 0) && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -343,7 +410,8 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
             </button>
           )}
 
-          {activeIndex < stories.length - 1 && (
+          {(activeBucketIndex < storyBuckets.length - 1 ||
+            activeStoryIndex < activeBucket.stories.length - 1) && (
             <button
               onClick={(e) => {
                 e.stopPropagation();

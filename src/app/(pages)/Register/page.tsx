@@ -11,14 +11,28 @@ export const metadata: Metadata = {
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen  flex justify-center">
+    <div className="min-h-screen  flex justify-center bg-white">
       <div className="w-full max-w-[600px] flex flex-col">
         <div className="px-4 pt-6">
           <div className="flex flex-col justify-center items-start gap-3 mb-5">
-            <Link href="/">
-              <p className="text-[25px] cursor-pointer w-[40px] h-[40px] rounded-full hover:bg-gray-100 flex justify-center items-center">
-                &lt;
-              </p>
+            <Link
+              href="/"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-[#606770] hover:bg-[#f0f2f5] active:bg-[#e4e6eb] cursor-pointer transition-colors"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                width="20"
+                height="20"
+                aria-hidden="true"
+                className="text-[#606770]"
+              >
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M16.753 4.341a1 1 0 0 0-1.412-.094l-8 7a1 1 0 0 0 0 1.506l8 7a1 1 0 0 0 1.318-1.506L9.518 12l7.14-6.247a1 1 0 0 0 .094-1.412z"
+                />
+              </svg>
             </Link>
 
             <Image src={Meta} alt="Meta" width={60} height={40} />

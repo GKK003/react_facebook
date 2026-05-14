@@ -53,11 +53,20 @@ export default function Select({
         <span className={!value ? "text-gray-400" : ""}>
           {selected ? selected.label : placeholder}
         </span>
-        <span
-          className={`${error ? "text-red-500" : "text-black"} rotate-[-90deg]`}
+        <svg
+          className={`${error ? "text-red-500" : "text-black"} `}
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          width={20}
+          height={20}
+          aria-hidden="true"
         >
-          {"<"}
-        </span>
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M4.341 7.247a1 1 0 0 0-.094 1.412l7 8a1 1 0 0 0 1.506 0l7-8a1 1 0 0 0-1.506-1.318L12 14.482l-6.247-7.14a1 1 0 0 0-1.412-.094z"
+          />
+        </svg>
       </div>
 
       {open && (

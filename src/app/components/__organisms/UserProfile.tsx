@@ -479,18 +479,20 @@ export default function UserProfile() {
                 <svg
                   viewBox="0 0 24 24"
                   fill="currentColor"
-                  className="w-5 h-5"
+                  className="w-5 h-5 flex-shrink-0"
                 >
                   <path d="M20 5h-3.2l-1.8-2H9L7.2 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zM12 18c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5z" />
                 </svg>
 
-                {uploading === "cover" ? "Uploading..." : "Edit cover photo"}
+                <span className="max-[360px]:hidden">
+                  {uploading === "cover" ? "Uploading..." : "Edit cover photo"}
+                </span>
               </label>
             )}
           </div>
 
           <div className="px-4 pb-4">
-            <div className="flex items-end justify-between -mt-[52px] flex-wrap gap-4">
+            <div className="flex items-end justify-between -mt-[52px] flex-wrap gap-4 gh:flex-col gh:items-start">
               <div className="relative">
                 <div className="w-[168px] h-[168px] rounded-full border-4 border-white dark:border-[#242526] overflow-hidden bg-[#c9cdd2] dark:bg-[#3a3b3c] relative">
                   {profilePhoto ? (
@@ -588,17 +590,43 @@ export default function UserProfile() {
             </div>
           </div>
 
-          <div className="border-t border-[#ced0d4] dark:border-[#3a3b3c] px-4 flex gap-1 sm:gap-0 sm:px-2 gg:px-0">
-            {["All", "About", "Friends", "Photos", "Reels", "More"].map(
-              (tab) => (
-                <button
-                  key={tab}
-                  className="px-4 py-3 text-[15px] font-semibold text-[#606770] dark:text-[#b0b3b8] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] rounded-lg transition-colors cursor-pointer"
-                >
-                  {tab}
-                </button>
-              ),
-            )}
+          <div className="border-t border-[#ced0d4] dark:border-[#3a3b3c] px-4 flex flex-wrap gap-1 sm:gap-0 sm:px-2 gg:px-0">
+            <a
+              href="#"
+              className="px-4 py-3 text-[15px] font-semibold text-[#606770] dark:text-[#b0b3b8] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] rounded-lg whitespace-nowrap"
+            >
+              All
+            </a>
+            <a
+              href="https://www.meta.com/about/?utm_source=about.facebook.com&utm_medium=redirect"
+              className="px-4 py-3 text-[15px] font-semibold text-[#606770] dark:text-[#b0b3b8] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] rounded-lg whitespace-nowrap"
+            >
+              About
+            </a>
+            <a
+              href="/friends"
+              className="px-4 py-3 text-[15px] font-semibold text-[#606770] dark:text-[#b0b3b8] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] rounded-lg whitespace-nowrap"
+            >
+              Friends
+            </a>
+            <a
+              href="https://www.facebook.com/photos"
+              className="px-4 py-3 text-[15px] font-semibold text-[#606770] dark:text-[#b0b3b8] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] rounded-lg whitespace-nowrap sl:hidden"
+            >
+              Photos
+            </a>
+            <a
+              href="https://www.facebook.com/kostava.gio/reels/"
+              className="px-4 py-3 text-[15px] font-semibold text-[#606770] dark:text-[#b0b3b8] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] rounded-lg whitespace-nowrap gl:hidden"
+            >
+              Reels
+            </a>
+            <a
+              href="https://www.facebook.com/100006526143813/allactivity/?category_key=ALL&entry_point=profile_shortcut&should_load_landing_page=1"
+              className="px-4 py-3 text-[15px] font-semibold text-[#606770] dark:text-[#b0b3b8] hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] rounded-lg whitespace-nowrap"
+            >
+              More
+            </a>
           </div>
         </div>
 

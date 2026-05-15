@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import ProfilePicture from "@/app/components/__atoms/ProfilePicture";
 
 interface LeftSidebarProps {
   user: {
@@ -17,22 +18,13 @@ export default function LeftSidebar({ user }: LeftSidebarProps) {
         href="/profile"
         className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-[#f2f2f2] dark:hover:bg-[#3a3b3c] transition-colors mt-2"
       >
-        <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 bg-gray-300 dark:bg-[#3a3b3c]">
-          {user?.photoURL ? (
-            <Image
-              src={user.photoURL}
-              alt={user.displayName || "Profile"}
-              width={36}
-              height={36}
-              className="w-full h-full object-cover"
-              unoptimized
-            />
-          ) : (
-            <div className="w-full h-full bg-gray-400 dark:bg-[#4e4f50] flex items-center justify-center text-white text-sm font-semibold">
-              {user?.displayName?.[0]?.toUpperCase() || "U"}
-            </div>
-          )}
-        </div>
+        <ProfilePicture
+          src={user?.photoURL}
+          name={user?.displayName}
+          size={36}
+          className="bg-gray-300 dark:bg-[#3a3b3c]"
+          textClassName="text-sm"
+        />
 
         <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
           {user?.displayName || "User"}

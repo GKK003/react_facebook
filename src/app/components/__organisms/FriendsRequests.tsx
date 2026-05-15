@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
@@ -17,6 +16,7 @@ import {
 
 import { auth, db } from "@/firebase/firebase";
 import Navbar from "@/app/components/__organisms/Navbar";
+import ProfilePicture from "@/app/components/__atoms/ProfilePicture";
 
 interface UserProfile {
   firstName?: string;
@@ -174,22 +174,16 @@ function RequestCard({
   return (
     <div className="w-full bg-white dark:bg-[#242526] rounded-lg border border-[#ced0d4] dark:border-[#3a3b3c] shadow-sm overflow-hidden">
       <Link href={`/profile/${request.fromUid}`}>
-        <div className="h-[248px] bg-[#e4e6eb] dark:bg-[#3a3b3c]">
-          {request.fromPhoto ? (
-            <Image
-              src={request.fromPhoto}
-              alt={request.fromName}
-              width={250}
-              height={248}
-              className="w-full h-full object-cover"
-              unoptimized
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-[#1877f2] to-[#8b9dc3] flex items-center justify-center text-white text-[64px] font-bold">
-              {request.fromName?.[0]?.toUpperCase() || "U"}
-            </div>
-          )}
-        </div>
+        <ProfilePicture
+          uid={request.fromUid}
+          src={request.fromPhoto}
+          name={request.fromName}
+          width="100%"
+          height={248}
+          live
+          className="rounded-none bg-gradient-to-br from-[#1877f2] to-[#8b9dc3]"
+          textClassName="text-[64px] font-bold"
+        />
       </Link>
 
       <div className="p-3">

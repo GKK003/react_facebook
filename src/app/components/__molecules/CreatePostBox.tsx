@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import ProfilePicture from "@/app/components/__atoms/ProfilePicture";
 
 interface CreatePostBoxProps {
   user: {
@@ -14,21 +15,13 @@ export default function CreatePostBox({ user, onOpen }: CreatePostBoxProps) {
   return (
     <div className="bg-white dark:bg-[#242526] rounded-xl shadow-sm border border-[#ced0d4] dark:border-[#3a3b3c] px-4 py-3 md:h-[90px]">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
-          {user?.photoURL ? (
-            <Image
-              src={user.photoURL}
-              alt={user.displayName || "Profile"}
-              width={40}
-              height={40}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold text-lg">
-              {user?.displayName?.[0]?.toUpperCase() || "U"}
-            </div>
-          )}
-        </div>
+        <ProfilePicture
+          src={user?.photoURL}
+          name={user?.displayName}
+          size={40}
+          className="bg-gray-300 dark:bg-[#3a3b3c]"
+          textClassName="text-lg"
+        />
 
         <button
           onClick={onOpen}

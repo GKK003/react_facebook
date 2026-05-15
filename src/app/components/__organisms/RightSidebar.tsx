@@ -1,12 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 
 import { auth, db } from "@/firebase/firebase";
+import ProfilePicture from "@/app/components/__atoms/ProfilePicture";
 
 interface FriendRequest {
   id: string;
@@ -201,22 +201,15 @@ export default function RightSidebar() {
                 className="flex items-center gap-3 w-full px-2 py-2 rounded-lg  hover:bg-[#e4e6eb] dark:hover:bg-[#3a3b3c] transition-colors"
               >
                 <div className="relative flex-shrink-0">
-                  <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c]">
-                    {contact.photoURL ? (
-                      <Image
-                        src={contact.photoURL}
-                        alt={contact.name}
-                        width={36}
-                        height={36}
-                        className="w-full h-full object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-sm font-semibold">
-                        {contact.name[0]?.toUpperCase() || "U"}
-                      </div>
-                    )}
-                  </div>
+                  <ProfilePicture
+                    uid={contact.uid}
+                    src={contact.photoURL}
+                    name={contact.name}
+                    size={36}
+                    live
+                    className="bg-gray-300 dark:bg-[#3a3b3c]"
+                    textClassName="text-sm"
+                  />
 
                   {contact.online && (
                     <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-[#18191a]" />

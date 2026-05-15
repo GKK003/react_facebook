@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import {
@@ -22,6 +21,7 @@ import {
 import { auth, db } from "@/firebase/firebase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import TimeAgoText from "./TimeAgo";
+import ProfilePicture from "@/app/components/__atoms/ProfilePicture";
 
 export interface Post {
   id: string;
@@ -111,8 +111,8 @@ export default function PostCard({
   const [saved, setSaved] = useState(false);
   const [showEditPost, setShowEditPost] = useState(false);
   const [editText, setEditText] = useState(post.text || "");
-  const [editFile, setEditFile] = useState<File | null>(null);
-  const [editPreviewURL, setEditPreviewURL] = useState<string | null>(null);
+  const [editFiles, setEditFiles] = useState<File[]>([]);
+  const [editPreviewURLs, setEditPreviewURLs] = useState<string[]>([]);
   const [removeMedia, setRemoveMedia] = useState(false);
   const [editing, setEditing] = useState(false);
   const [showCommentLikesPopup, setShowCommentLikesPopup] = useState(false);
@@ -123,6 +123,9 @@ export default function PostCard({
   const [replies, setReplies] = useState<Record<string, Reply[]>>({});
   const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
   const [submittingReply, setSubmittingReply] = useState<string | null>(null);
+  const [lightboxImageIndex, setLightboxImageIndex] = useState<number | null>(
+    null,
+  );
 
   const userId = currentUserId || auth.currentUser?.uid;
   useEffect(() => {
@@ -359,6 +362,48 @@ export default function PostCard({
     }
   };
 
+  const openReplyLikesPopup = async (reply: Reply) => {
+    if (!Array.isArray(reply.likes) || reply.likes.length === 0) return;
+
+    setShowCommentLikesPopup(true);
+    setCommentLikesLoading(true);
+
+    try {
+      const users = await Promise.all(
+        reply.likes.map(async (uid) => {
+          const snap = await getDoc(doc(db, "users", uid));
+
+          if (snap.exists()) {
+            const data = snap.data();
+
+            const name =
+              `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
+              data.email ||
+              "User";
+
+            return {
+              uid,
+              name,
+              photoURL: data.photoURL || null,
+            };
+          }
+
+          return {
+            uid,
+            name: "User",
+            photoURL: null,
+          };
+        }),
+      );
+
+      setCommentLikedUsers(users);
+    } catch (err) {
+      console.error("Reply likes popup error:", err);
+    } finally {
+      setCommentLikesLoading(false);
+    }
+  };
+
   const handleLike = async () => {
     if (!userId) return;
 
@@ -384,55 +429,70 @@ export default function PostCard({
 
   const openEditPost = () => {
     setEditText(post.text || "");
-    setEditFile(null);
-    setEditPreviewURL(null);
+    editPreviewURLs.forEach((url) => URL.revokeObjectURL(url));
+    setEditFiles([]);
+    setEditPreviewURLs([]);
     setRemoveMedia(false);
     setShowMenu(false);
     setShowEditPost(true);
   };
 
   const closeEditPost = () => {
-    if (editPreviewURL) {
-      URL.revokeObjectURL(editPreviewURL);
-    }
+    editPreviewURLs.forEach((url) => URL.revokeObjectURL(url));
 
     setEditText(post.text || "");
-    setEditFile(null);
-    setEditPreviewURL(null);
+    setEditFiles([]);
+    setEditPreviewURLs([]);
     setRemoveMedia(false);
     setShowEditPost(false);
   };
 
-  const handleEditFileSelect = (file: File | undefined) => {
-    if (!file) return;
+  const handleEditFileSelect = (files: FileList | null) => {
+    if (!files) return;
 
-    if (!file.type.startsWith("image/")) {
+    const imageFiles = Array.from(files).filter((file) =>
+      file.type.startsWith("image/"),
+    );
+
+    if (imageFiles.length === 0) {
       alert("Please choose an image.");
       return;
     }
 
-    if (editPreviewURL) {
-      URL.revokeObjectURL(editPreviewURL);
-    }
+    const nextFiles = [...editFiles, ...imageFiles].slice(0, 6);
 
-    setEditFile(file);
-    setEditPreviewURL(URL.createObjectURL(file));
+    editPreviewURLs.forEach((url) => URL.revokeObjectURL(url));
+
+    setEditFiles(nextFiles);
+    setEditPreviewURLs(nextFiles.map((file) => URL.createObjectURL(file)));
     setRemoveMedia(false);
+  };
+
+  const removeEditPreviews = () => {
+    editPreviewURLs.forEach((url) => URL.revokeObjectURL(url));
+    setEditFiles([]);
+    setEditPreviewURLs([]);
+    setRemoveMedia(true);
   };
 
   const handleSaveEditPost = async () => {
     if (!userId || userId !== post.authorId || editing) return;
 
-    if (!editText.trim() && !editFile && removeMedia && postImages.length === 0)
+    if (
+      !editText.trim() &&
+      editFiles.length === 0 &&
+      removeMedia &&
+      postImages.length === 0
+    ) {
       return;
+    }
 
     setEditing(true);
 
     try {
-      let mediaURL: string | null | undefined =
-        postImages[0] || post.mediaURL || null;
       let mediaURLs: string[] = postImages;
-      let mediaType: "image" | "video" | null | undefined =
+      let mediaURL: string | null = postImages[0] || post.mediaURL || null;
+      let mediaType: "image" | "video" | null =
         mediaURLs.length > 0 ? "image" : post.mediaType || null;
 
       if (removeMedia) {
@@ -441,10 +501,13 @@ export default function PostCard({
         mediaType = null;
       }
 
-      if (editFile) {
-        mediaURL = await uploadToCloudinary(editFile);
-        mediaURLs = mediaURL ? [mediaURL] : [];
-        mediaType = mediaURL ? "image" : null;
+      if (editFiles.length > 0) {
+        mediaURLs = await Promise.all(
+          editFiles.map((file) => uploadToCloudinary(file)),
+        );
+
+        mediaURL = mediaURLs[0] || null;
+        mediaType = mediaURLs.length > 0 ? "image" : null;
       }
 
       await updateDoc(doc(db, "posts", post.id), {
@@ -500,6 +563,25 @@ export default function PostCard({
       });
     } catch (err) {
       console.error("Comment like error:", err);
+    }
+  };
+
+  const handleLikeReply = async (commentId: string, reply: Reply) => {
+    if (!userId) return;
+
+    const alreadyLiked = Array.isArray(reply.likes)
+      ? reply.likes.includes(userId)
+      : false;
+
+    try {
+      await updateDoc(
+        doc(db, "posts", post.id, "comments", commentId, "replies", reply.id),
+        {
+          likes: alreadyLiked ? arrayRemove(userId) : arrayUnion(userId),
+        },
+      );
+    } catch (err) {
+      console.error("Reply like error:", err);
     }
   };
 
@@ -630,15 +712,57 @@ export default function PostCard({
         ? [post.mediaURL]
         : [];
 
+  const openLightbox = (index: number) => {
+    setLightboxImageIndex(index);
+  };
+
+  const closeLightbox = () => {
+    setLightboxImageIndex(null);
+  };
+
+  const goLightboxPrev = () => {
+    setLightboxImageIndex((prev) => {
+      if (prev === null || postImages.length === 0) return prev;
+      return prev === 0 ? postImages.length - 1 : prev - 1;
+    });
+  };
+
+  const goLightboxNext = () => {
+    setLightboxImageIndex((prev) => {
+      if (prev === null || postImages.length === 0) return prev;
+      return prev === postImages.length - 1 ? 0 : prev + 1;
+    });
+  };
+
+  const renderCollageImage = (
+    url: string,
+    index: number,
+    className: string,
+  ) => {
+    return (
+      <button
+        key={`${url}-${index}`}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          openLightbox(index);
+        }}
+        className="block w-full overflow-hidden bg-[#f0f2f5] dark:bg-[#18191a] cursor-pointer"
+      >
+        <img src={url} alt="" className={className} />
+      </button>
+    );
+  };
+
   const renderImageCollage = (images: string[], modal = false) => {
     const oneClass = modal
-      ? "max-h-[520px] object-contain"
-      : "max-h-[650px] object-contain";
+      ? "w-full max-h-[520px] object-contain"
+      : "w-full max-h-[650px] object-contain";
 
     if (images.length === 1) {
       return (
         <div className="w-full bg-[#f0f2f5] dark:bg-[#18191a] flex items-center justify-center overflow-hidden">
-          <img src={images[0]} alt="" className={`w-full ${oneClass}`} />
+          {renderCollageImage(images[0], 0, oneClass)}
         </div>
       );
     }
@@ -646,14 +770,9 @@ export default function PostCard({
     if (images.length === 2) {
       return (
         <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#242526]">
-          {images.map((url) => (
-            <img
-              key={url}
-              src={url}
-              alt=""
-              className="w-full h-[420px] object-cover"
-            />
-          ))}
+          {images.map((url, index) =>
+            renderCollageImage(url, index, "w-full h-[420px] object-cover"),
+          )}
         </div>
       );
     }
@@ -661,20 +780,17 @@ export default function PostCard({
     if (images.length === 3) {
       return (
         <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#242526]">
-          <img
-            src={images[0]}
-            alt=""
-            className="w-full h-[420px] object-cover"
-          />
+          {renderCollageImage(images[0], 0, "w-full h-[420px] object-cover")}
           <div className="grid grid-rows-2 gap-1">
-            {images.slice(1).map((url) => (
-              <img
-                key={url}
-                src={url}
-                alt=""
-                className="w-full h-[208px] object-cover"
-              />
-            ))}
+            {images
+              .slice(1)
+              .map((url, index) =>
+                renderCollageImage(
+                  url,
+                  index + 1,
+                  "w-full h-[208px] object-cover",
+                ),
+              )}
           </div>
         </div>
       );
@@ -683,14 +799,9 @@ export default function PostCard({
     if (images.length === 4) {
       return (
         <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#242526]">
-          {images.map((url) => (
-            <img
-              key={url}
-              src={url}
-              alt=""
-              className="w-full h-[260px] object-cover"
-            />
-          ))}
+          {images.map((url, index) =>
+            renderCollageImage(url, index, "w-full h-[260px] object-cover"),
+          )}
         </div>
       );
     }
@@ -699,24 +810,22 @@ export default function PostCard({
       return (
         <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#242526]">
           <div className="grid grid-rows-2 gap-1">
-            {images.slice(0, 2).map((url) => (
-              <img
-                key={url}
-                src={url}
-                alt=""
-                className="w-full h-[208px] object-cover"
-              />
-            ))}
+            {images
+              .slice(0, 2)
+              .map((url, index) =>
+                renderCollageImage(url, index, "w-full h-[208px] object-cover"),
+              )}
           </div>
           <div className="grid grid-rows-3 gap-1">
-            {images.slice(2, 5).map((url) => (
-              <img
-                key={url}
-                src={url}
-                alt=""
-                className="w-full h-[137px] object-cover"
-              />
-            ))}
+            {images
+              .slice(2, 5)
+              .map((url, index) =>
+                renderCollageImage(
+                  url,
+                  index + 2,
+                  "w-full h-[137px] object-cover",
+                ),
+              )}
           </div>
         </div>
       );
@@ -724,17 +833,17 @@ export default function PostCard({
 
     return (
       <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#242526]">
-        {images.slice(0, 6).map((url) => (
-          <img
-            key={url}
-            src={url}
-            alt=""
-            className="w-full h-[210px] object-cover"
-          />
-        ))}
+        {images
+          .slice(0, 6)
+          .map((url, index) =>
+            renderCollageImage(url, index, "w-full h-[210px] object-cover"),
+          )}
       </div>
     );
   };
+
+  const lightboxImage =
+    lightboxImageIndex !== null ? postImages[lightboxImageIndex] : null;
 
   if (deleted) return null;
 
@@ -765,22 +874,15 @@ export default function PostCard({
       <div className="bg-white dark:bg-[#242526] rounded-lg shadow">
         <div className="flex items-start justify-between px-4 pt-3 pb-2">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c]">
-              {post.authorPhoto ? (
-                <Image
-                  src={post.authorPhoto}
-                  alt={post.authorName || "User"}
-                  width={40}
-                  height={40}
-                  className="w-full h-full object-cover"
-                  unoptimized
-                />
-              ) : (
-                <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold text-sm">
-                  {(post.authorName || "U")[0].toUpperCase()}
-                </div>
-              )}
-            </div>
+            <ProfilePicture
+              uid={post.authorId}
+              src={post.authorPhoto}
+              name={post.authorName}
+              size={40}
+              live
+              className="bg-gray-300 dark:bg-[#3a3b3c]"
+              textClassName="text-sm"
+            />
 
             <div>
               <p className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb] leading-tight">
@@ -867,12 +969,9 @@ export default function PostCard({
         )}
 
         {postImages.length > 0 && (
-          <button
-            onClick={openCommentModal}
-            className="w-full bg-[#f0f2f5] dark:bg-[#18191a] overflow-hidden cursor-pointer"
-          >
+          <div className="w-full bg-[#f0f2f5] dark:bg-[#18191a] overflow-hidden">
             {renderImageCollage(postImages)}
-          </button>
+          </div>
         )}
 
         {(likesCount > 0 || comments.length > 0) && (
@@ -983,6 +1082,85 @@ export default function PostCard({
         </div>
       </div>
 
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/90 flex items-center justify-center px-4"
+          onClick={closeLightbox}
+        >
+          <button
+            type="button"
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 w-11 h-11 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white text-[34px] leading-none cursor-pointer z-[72]"
+          >
+            ×
+          </button>
+
+          {postImages.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                goLightboxPrev();
+              }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white cursor-pointer z-[72]"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                width={30}
+                height={30}
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M16.753 4.341a1 1 0 0 0-1.412-.094l-8 7a1 1 0 0 0 0 1.506l8 7a1 1 0 0 0 1.318-1.506L9.518 12l7.14-6.247a1 1 0 0 0 .094-1.412z"
+                />
+              </svg>
+            </button>
+          )}
+
+          <img
+            src={lightboxImage}
+            alt=""
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-[92vh] object-contain"
+          />
+
+          {postImages.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                goLightboxNext();
+              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white cursor-pointer z-[72]"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                width={30}
+                height={30}
+                aria-hidden="true"
+                className="rotate-180"
+              >
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M16.753 4.341a1 1 0 0 0-1.412-.094l-8 7a1 1 0 0 0 0 1.506l8 7a1 1 0 0 0 1.318-1.506L9.518 12l7.14-6.247a1 1 0 0 0 .094-1.412z"
+                />
+              </svg>
+            </button>
+          )}
+
+          {postImages.length > 1 && lightboxImageIndex !== null && (
+            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/50 text-white text-[14px] font-semibold">
+              {lightboxImageIndex + 1} / {postImages.length}
+            </div>
+          )}
+        </div>
+      )}
+
       {showCommentModal && (
         <div
           className="fixed inset-0 z-50 bg-white/70 dark:bg-black/60 flex items-center justify-center px-4"
@@ -1005,19 +1183,15 @@ export default function PostCard({
             </div>
 
             <div className="px-4 py-3 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
-                {post.authorPhoto ? (
-                  <img
-                    src={post.authorPhoto}
-                    alt={post.authorName || "User"}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold text-[18px]">
-                    {(post.authorName || "U")[0].toUpperCase()}
-                  </div>
-                )}
-              </div>
+              <ProfilePicture
+                uid={post.authorId}
+                src={post.authorPhoto}
+                name={post.authorName}
+                size={48}
+                live
+                className="bg-gray-300 dark:bg-[#3a3b3c]"
+                textClassName="text-[18px]"
+              />
 
               <div className="min-w-0">
                 <p className="text-[17px] font-semibold text-[#050505] dark:text-[#e4e6eb] leading-[20px] truncate">
@@ -1163,19 +1337,15 @@ export default function PostCard({
 
                   return (
                     <div key={c.id} className="flex items-start gap-2">
-                      <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
-                        {c.authorPhoto ? (
-                          <img
-                            src={c.authorPhoto}
-                            alt={commentName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-sm font-semibold">
-                            {commentName[0].toUpperCase()}
-                          </div>
-                        )}
-                      </div>
+                      <ProfilePicture
+                        uid={c.authorId}
+                        src={c.authorPhoto}
+                        name={commentName}
+                        size={36}
+                        live
+                        className="bg-gray-300 dark:bg-[#3a3b3c]"
+                        textClassName="text-sm"
+                      />
 
                       <div className="flex-1">
                         <div className="bg-[#f0f2f5] dark:bg-[#3a3b3c] rounded-2xl px-3 py-2 inline-block">
@@ -1271,25 +1441,28 @@ export default function PostCard({
                           <div className="mt-2 ml-2 flex flex-col gap-2">
                             {replies[c.id].map((reply) => {
                               const replyName = reply.authorName || "User";
+                              const replyLiked = userId
+                                ? Array.isArray(reply.likes) &&
+                                  reply.likes.includes(userId)
+                                : false;
+                              const replyLikesCount = Array.isArray(reply.likes)
+                                ? reply.likes.length
+                                : 0;
 
                               return (
                                 <div
                                   key={reply.id}
                                   className="flex items-start gap-2"
                                 >
-                                  <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
-                                    {reply.authorPhoto ? (
-                                      <img
-                                        src={reply.authorPhoto}
-                                        alt={replyName}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[12px] font-semibold">
-                                        {replyName[0]?.toUpperCase() || "U"}
-                                      </div>
-                                    )}
-                                  </div>
+                                  <ProfilePicture
+                                    uid={reply.authorId}
+                                    src={reply.authorPhoto}
+                                    name={replyName}
+                                    size={28}
+                                    live
+                                    className="bg-gray-300 dark:bg-[#3a3b3c]"
+                                    textClassName="text-[12px]"
+                                  />
 
                                   <div>
                                     <div className="bg-[#f0f2f5] dark:bg-[#3a3b3c] rounded-2xl px-3 py-2 inline-block">
@@ -1307,9 +1480,37 @@ export default function PostCard({
                                         <TimeAgoText date={reply.createdAt} />
                                       </span>
 
-                                      <button className="text-[12px] font-bold text-[#65676b] dark:text-[#b0b3b8] cursor-pointer">
+                                      <button
+                                        onClick={() =>
+                                          handleLikeReply(c.id, reply)
+                                        }
+                                        className={`text-[12px] font-bold cursor-pointer ${
+                                          replyLiked
+                                            ? "text-[#1877f2]"
+                                            : "text-[#65676b] dark:text-[#b0b3b8]"
+                                        }`}
+                                      >
                                         Like
                                       </button>
+
+                                      {replyLikesCount > 0 && (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            openReplyLikesPopup(reply)
+                                          }
+                                          className="flex items-center gap-1 text-[12px] text-[#65676b] dark:text-[#b0b3b8] hover:underline cursor-pointer"
+                                        >
+                                          <img
+                                            className="w-[14px] h-[14px]"
+                                            height={14}
+                                            width={14}
+                                            alt="Like"
+                                            src="data:image/svg+xml,%3Csvg fill='none' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M16.0001 7.9996c0 4.418-3.5815 7.9996-7.9995 7.9996S.001 12.4176.001 7.9996 3.5825 0 8.0006 0C12.4186 0 16 3.5815 16 7.9996Z' fill='url(%23paint0_linear_15251_63610)'/%3E%3Cpath d='M16.0001 7.9996c0 4.418-3.5815 7.9996-7.9995 7.9996S.001 12.4176.001 7.9996 3.5825 0 8.0006 0C12.4186 0 16 3.5815 16 7.9996Z' fill='url(%23paint1_radial_15251_63610)'/%3E%3Cpath d='M16.0001 7.9996c0 4.418-3.5815 7.9996-7.9995 7.9996S.001 12.4176.001 7.9996 3.5825 0 8.0006 0C12.4186 0 16 3.5815 16 7.9996Z' fill='url(%23paint2_radial_15251_63610)' fill-opacity='.5'/%3E%3Cpath d='M7.3014 3.8662a.6974.6974 0 0 1 .6974-.6977c.6742 0 1.2207.5465 1.2207 1.2206v1.7464a.101.101 0 0 0 .101.101h1.7953c.992 0 1.7232.9273 1.4917 1.892l-.4572 1.9047a2.301 2.301 0 0 1-2.2374 1.764H6.9185a.5752.5752 0 0 1-.5752-.5752V7.7384c0-.4168.097-.8278.2834-1.2005l.2856-.5712a3.6878 3.6878 0 0 0 .3893-1.6509l-.0002-.4496ZM4.367 7a.767.767 0 0 0-.7669.767v3.2598a.767.767 0 0 0 .767.767h.767a.3835.3835 0 0 0 .3835-.3835V7.3835A.3835.3835 0 0 0 5.134 7h-.767Z' fill='%23fff'/%3E%3Cdefs%3E%3CradialGradient id='paint1_radial_15251_63610' cx='0' cy='0' r='1' gradientUnits='userSpaceOnUse' gradientTransform='rotate(90 .0005 8) scale(7.99958)'%3E%3Cstop offset='.5618' stop-color='%230866FF' stop-opacity='0'/%3E%3Cstop offset='1' stop-color='%230866FF' stop-opacity='.1'/%3E%3C/radialGradient%3E%3CradialGradient id='paint2_radial_15251_63610' cx='0' cy='0' r='1' gradientUnits='userSpaceOnUse' gradientTransform='rotate(45 -4.5257 10.9237) scale(10.1818)'%3E%3Cstop offset='.3143' stop-color='%2302ADFC'/%3E%3Cstop offset='1' stop-color='%2302ADFC' stop-opacity='0'/%3E%3C/radialGradient%3E%3ClinearGradient id='paint0_linear_15251_63610' x1='2.3989' y1='2.3999' x2='13.5983' y2='13.5993' gradientUnits='userSpaceOnUse'%3E%3Cstop stop-color='%2302ADFC'/%3E%3Cstop offset='.5' stop-color='%230866FF'/%3E%3Cstop offset='1' stop-color='%232B7EFF'/%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E"
+                                          />
+                                          <span>{replyLikesCount}</span>
+                                        </button>
+                                      )}
 
                                       <button
                                         onClick={() => setReplyingTo(c.id)}
@@ -1461,19 +1662,14 @@ export default function PostCard({
                       href={`/profile/${user.uid}`}
                       className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] cursor-pointer"
                     >
-                      <div className="w-11 h-11 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
-                        {user.photoURL ? (
-                          <img
-                            src={user.photoURL}
-                            alt={user.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                            {user.name[0]?.toUpperCase() || "U"}
-                          </div>
-                        )}
-                      </div>
+                      <ProfilePicture
+                        uid={user.uid}
+                        src={user.photoURL}
+                        name={user.name}
+                        size={44}
+                        live
+                        className="bg-gray-300 dark:bg-[#3a3b3c]"
+                      />
 
                       <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
                         {user.name}
@@ -1594,19 +1790,14 @@ export default function PostCard({
                           key={friend.uid}
                           className="w-[70px] flex-shrink-0 text-center"
                         >
-                          <div className="w-[54px] h-[54px] mx-auto rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c]">
-                            {friend.photoURL ? (
-                              <img
-                                src={friend.photoURL}
-                                alt={friend.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                                {friend.name[0]?.toUpperCase() || "U"}
-                              </div>
-                            )}
-                          </div>
+                          <ProfilePicture
+                            uid={friend.uid}
+                            src={friend.photoURL}
+                            name={friend.name}
+                            size={54}
+                            live
+                            className="mx-auto bg-gray-300 dark:bg-[#3a3b3c]"
+                          />
 
                           <p className="mt-1 text-[13px] text-[#050505] dark:text-[#e4e6eb] leading-[16px] line-clamp-2">
                             {friend.name}
@@ -1729,19 +1920,12 @@ export default function PostCard({
                 autoFocus
               />
 
-              {(editPreviewURL || (postImages.length > 0 && !removeMedia)) && (
-                <div className="relative rounded-lg overflow-hidden mb-3 bg-[#f0f2f5] dark:bg-[#18191a]">
+              {(editPreviewURLs.length > 0 ||
+                (postImages.length > 0 && !removeMedia)) && (
+                <div className="relative rounded-lg overflow-hidden mb-3 bg-[#f0f2f5] dark:bg-[#18191a] border border-[#ced0d4] dark:border-[#3a3b3c]">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (editPreviewURL) {
-                        URL.revokeObjectURL(editPreviewURL);
-                      }
-
-                      setEditFile(null);
-                      setEditPreviewURL(null);
-                      setRemoveMedia(true);
-                    }}
+                    onClick={removeEditPreviews}
                     className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-[#3a3b3c]/90 hover:bg-[#4e4f50] flex items-center justify-center cursor-pointer"
                   >
                     <span className="text-[28px] leading-none text-white">
@@ -1749,11 +1933,47 @@ export default function PostCard({
                     </span>
                   </button>
 
-                  <img
-                    src={editPreviewURL || postImages[0]}
-                    alt="Preview"
-                    className="w-full max-h-[260px] object-cover"
-                  />
+                  <div
+                    className={`grid gap-1 bg-white dark:bg-[#242526] ${
+                      (editPreviewURLs.length > 0
+                        ? editPreviewURLs
+                        : postImages
+                      ).length === 1
+                        ? "grid-cols-1"
+                        : "grid-cols-2"
+                    }`}
+                  >
+                    {(editPreviewURLs.length > 0 ? editPreviewURLs : postImages)
+                      .slice(0, 6)
+                      .map((url, index, arr) => (
+                        <div
+                          key={url}
+                          className={`relative overflow-hidden bg-[#f0f2f5] dark:bg-[#18191a] ${
+                            arr.length === 1
+                              ? "h-[360px]"
+                              : arr.length === 2
+                                ? "h-[260px]"
+                                : arr.length === 3 && index === 0
+                                  ? "h-[260px] row-span-2"
+                                  : arr.length === 3
+                                    ? "h-[128px]"
+                                    : arr.length === 4
+                                      ? "h-[180px]"
+                                      : arr.length === 5 && index < 2
+                                        ? "h-[180px]"
+                                        : arr.length === 5
+                                          ? "h-[118px]"
+                                          : "h-[140px]"
+                          }`}
+                        >
+                          <img
+                            src={url}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                  </div>
                 </div>
               )}
 
@@ -1800,10 +2020,9 @@ export default function PostCard({
                     <input
                       type="file"
                       accept="image/*"
+                      multiple
                       hidden
-                      onChange={(e) =>
-                        handleEditFileSelect(e.target.files?.[0])
-                      }
+                      onChange={(e) => handleEditFileSelect(e.target.files)}
                     />
 
                     <img
@@ -1883,7 +2102,8 @@ export default function PostCard({
               <button
                 onClick={handleSaveEditPost}
                 disabled={
-                  editing || (!editText.trim() && !editFile && removeMedia)
+                  editing ||
+                  (!editText.trim() && editFiles.length === 0 && removeMedia)
                 }
                 className="w-full h-10 rounded-md bg-[#1877f2] hover:bg-[#166fe5] disabled:bg-[#e4e6eb] dark:disabled:bg-[#3a3b3c] disabled:text-[#bcc0c4] text-white text-[15px] font-semibold cursor-pointer disabled:cursor-not-allowed"
               >
@@ -1933,19 +2153,14 @@ export default function PostCard({
                       href={`/profile/${user.uid}`}
                       className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] cursor-pointer"
                     >
-                      <div className="w-11 h-11 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
-                        {user.photoURL ? (
-                          <img
-                            src={user.photoURL}
-                            alt={user.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                            {user.name[0]?.toUpperCase() || "U"}
-                          </div>
-                        )}
-                      </div>
+                      <ProfilePicture
+                        uid={user.uid}
+                        src={user.photoURL}
+                        name={user.name}
+                        size={44}
+                        live
+                        className="bg-gray-300 dark:bg-[#3a3b3c]"
+                      />
 
                       <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
                         {user.name}

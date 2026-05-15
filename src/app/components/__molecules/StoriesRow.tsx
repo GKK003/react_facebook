@@ -7,6 +7,7 @@ import { db } from "@/firebase/firebase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Mousewheel } from "swiper/modules";
+import ProfilePicture from "@/app/components/__atoms/ProfilePicture";
 
 export interface Story {
   id: string;
@@ -271,22 +272,15 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
                       <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/65" />
                     </div>
 
-                    <div className="absolute top-2 left-2 w-9 h-9 rounded-full border-4 border-[#1877f2] overflow-hidden bg-gray-400">
-                      {bucket.authorPhoto ? (
-                        <Image
-                          src={bucket.authorPhoto}
-                          alt={bucket.authorName}
-                          width={36}
-                          height={36}
-                          className="w-full h-full object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[13px] font-bold">
-                          {bucket.authorName?.[0]?.toUpperCase() || "U"}
-                        </div>
-                      )}
-                    </div>
+                    <ProfilePicture
+                      uid={bucket.authorId}
+                      src={bucket.authorPhoto}
+                      name={bucket.authorName}
+                      size={36}
+                      live
+                      className="absolute top-2 left-2 border-4 border-[#1877f2] bg-gray-400"
+                      textClassName="text-[13px] font-bold"
+                    />
 
                     <div className="absolute bottom-2 left-2 right-2">
                       <span className="text-white text-[13px] font-semibold line-clamp-2 drop-shadow">
@@ -342,22 +336,15 @@ export default function StoriesRow({ user, stories = [] }: StoriesRowProps) {
             </div>
 
             <div className="absolute top-6 left-3 z-20 flex items-center gap-2">
-              <div className="w-9 h-9 rounded-full border-2 border-white overflow-hidden bg-gray-400">
-                {activeBucket.authorPhoto ? (
-                  <Image
-                    src={activeBucket.authorPhoto}
-                    alt={activeBucket.authorName}
-                    width={36}
-                    height={36}
-                    className="w-full h-full object-cover"
-                    unoptimized
-                  />
-                ) : (
-                  <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[13px] font-bold">
-                    {activeBucket.authorName?.[0]?.toUpperCase() || "U"}
-                  </div>
-                )}
-              </div>
+              <ProfilePicture
+                uid={activeBucket.authorId}
+                src={activeBucket.authorPhoto}
+                name={activeBucket.authorName}
+                size={36}
+                live
+                className="border-2 border-white bg-gray-400"
+                textClassName="text-[13px] font-bold"
+              />
 
               <span className="text-white text-[14px] font-semibold drop-shadow">
                 {activeBucket.authorName}

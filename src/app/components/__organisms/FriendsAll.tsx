@@ -1,20 +1,22 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   onSnapshot,
   query,
+  updateDoc,
   where,
 } from "firebase/firestore";
 
 import { auth, db } from "@/firebase/firebase";
 import Navbar from "@/app/components/__organisms/Navbar";
+import ProfilePicture from "@/app/components/__atoms/ProfilePicture";
 
 interface UserProfile {
   firstName?: string;
@@ -34,13 +36,6 @@ interface FriendRequest {
   status: "pending" | "accepted";
   createdAt?: any;
 }
-
-type FriendCard = {
-  uid: string;
-  name: string;
-  photoURL?: string | null;
-  requestId: string;
-};
 
 function getFullName(profile: UserProfile | null, fallback = "User") {
   if (!profile) return fallback;
@@ -115,17 +110,14 @@ function FriendsSidebar() {
 
         <Link
           href="/friends/requests"
-          className="h-[56px] rounded-lg flex items-center justify-between px-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c]"
+          className="h-[56px] rounded-lg flex items-center justify-between px-2 bg-[#f0f2f5] dark:bg-[#3a3b3c]"
         >
           <div className="flex items-center gap-3">
-            <CircleIcon type="request" />
+            <CircleIcon type="request" active />
             <span className="text-[17px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
               Friend requests
             </span>
           </div>
-          <span className="text-[24px] text-[#65676b] dark:text-[#b0b3b8]">
-            ›
-          </span>
         </Link>
 
         <button className="h-[56px] rounded-lg flex items-center justify-between px-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c]">
@@ -142,14 +134,17 @@ function FriendsSidebar() {
 
         <Link
           href="/friends/all"
-          className="h-[56px] rounded-lg flex items-center justify-between px-2 bg-[#f0f2f5] dark:bg-[#3a3b3c]"
+          className="h-[56px] rounded-lg flex items-center justify-between px-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c]"
         >
           <div className="flex items-center gap-3">
-            <CircleIcon type="all" active />
+            <CircleIcon type="all" />
             <span className="text-[17px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
               All friends
             </span>
           </div>
+          <span className="text-[24px] text-[#65676b] dark:text-[#b0b3b8]">
+            ›
+          </span>
         </Link>
 
         <button className="h-[56px] rounded-lg flex items-center justify-between px-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c]">
@@ -165,46 +160,73 @@ function FriendsSidebar() {
   );
 }
 
-function FriendListItem({ friend }: { friend: FriendCard }) {
+function RequestCard({
+  request,
+  onConfirm,
+  onDelete,
+  loading,
+}: {
+  request: FriendRequest;
+  onConfirm: (request: FriendRequest) => void;
+  onDelete: (request: FriendRequest) => void;
+  loading: boolean;
+}) {
   return (
-    <Link
-      href={`/profile/${friend.uid}`}
-      className="bg-white dark:bg-[#242526] rounded-lg border border-[#ced0d4] dark:border-[#3a3b3c] p-3 flex items-center gap-3 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c]"
-    >
-      <div className="w-16 h-16 rounded-full overflow-hidden bg-[#1877f2] flex items-center justify-center text-white text-[26px] font-bold flex-shrink-0">
-        {friend.photoURL ? (
-          <Image
-            src={friend.photoURL}
-            alt={friend.name}
-            width={64}
-            height={64}
-            className="w-full h-full object-cover"
-            unoptimized
-          />
-        ) : (
-          friend.name?.[0]?.toUpperCase() || "U"
-        )}
-      </div>
+    <div className="w-full bg-white dark:bg-[#242526] rounded-lg border border-[#ced0d4] dark:border-[#3a3b3c] shadow-sm overflow-hidden">
+      <Link href={`/profile/${request.fromUid}`}>
+        <ProfilePicture
+          uid={request.fromUid}
+          src={request.fromPhoto}
+          name={request.fromName}
+          width="100"
+          height={248}
+          live
+          className="rounded-none bg-gradient-to-br from-[#1877f2] to-[#8b9dc3]"
+          textClassName="text-[64px] font-bold"
+        />
+      </Link>
 
-      <div className="min-w-0">
-        <p className="text-[17px] font-bold text-[#050505] dark:text-[#e4e6eb] truncate">
-          {friend.name}
+      <div className="p-3">
+        <Link
+          href={`/profile/${request.fromUid}`}
+          className="block text-[17px] font-bold text-[#050505] dark:text-[#e4e6eb] truncate hover:underline"
+        >
+          {request.fromName}
+        </Link>
+
+        <p className="text-[15px] text-[#65676b] dark:text-[#b0b3b8] mt-1 truncate">
+          1 mutual friend
         </p>
-        <p className="text-[14px] text-[#65676b] dark:text-[#b0b3b8]">Friend</p>
+
+        <button
+          onClick={() => onConfirm(request)}
+          disabled={loading}
+          className="w-full h-[40px] mt-3 bg-[#1877f2] hover:bg-[#166fe5] text-white rounded-lg text-[15px] font-semibold disabled:opacity-70"
+        >
+          {loading ? "Loading..." : "Confirm"}
+        </button>
+
+        <button
+          onClick={() => onDelete(request)}
+          disabled={loading}
+          className="w-full h-[40px] mt-2 bg-[#e4e6eb] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] text-[#050505] dark:text-[#e4e6eb] rounded-lg text-[15px] font-semibold disabled:opacity-70"
+        >
+          Delete
+        </button>
       </div>
-    </Link>
+    </div>
   );
 }
 
-export default function FriendsAll() {
+export default function FriendsRequests() {
   const [currentUid, setCurrentUid] = useState<string | null>(null);
   const [navUser, setNavUser] = useState<{
     displayName: string | null;
     photoURL: string | null;
   } | null>(null);
 
-  const [acceptedSent, setAcceptedSent] = useState<FriendRequest[]>([]);
-  const [acceptedReceived, setAcceptedReceived] = useState<FriendRequest[]>([]);
+  const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -230,77 +252,61 @@ export default function FriendsAll() {
 
   useEffect(() => {
     if (!currentUid) {
-      setAcceptedSent([]);
-      return;
-    }
-
-    const q = query(
-      collection(db, "friendRequests"),
-      where("fromUid", "==", currentUid),
-      where("status", "==", "accepted"),
-    );
-
-    const unsub = onSnapshot(q, (snap) => {
-      setAcceptedSent(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        })) as FriendRequest[],
-      );
-    });
-
-    return () => unsub();
-  }, [currentUid]);
-
-  useEffect(() => {
-    if (!currentUid) {
-      setAcceptedReceived([]);
+      setIncomingRequests([]);
       return;
     }
 
     const q = query(
       collection(db, "friendRequests"),
       where("toUid", "==", currentUid),
-      where("status", "==", "accepted"),
+      where("status", "==", "pending"),
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      setAcceptedReceived(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        })) as FriendRequest[],
-      );
+      const data = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })) as FriendRequest[];
+
+      data.sort((a, b) => {
+        const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+        const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+        return bTime - aTime;
+      });
+
+      setIncomingRequests(data);
     });
 
     return () => unsub();
   }, [currentUid]);
 
-  const allFriends = useMemo(() => {
-    const map = new Map<string, FriendCard>();
+  const handleConfirm = async (request: FriendRequest) => {
+    setActionLoading(request.id);
 
-    acceptedSent.forEach((request) => {
-      map.set(request.toUid, {
-        uid: request.toUid,
-        name: request.toName || "User",
-        photoURL: request.toPhoto || null,
-        requestId: request.id,
+    try {
+      await updateDoc(doc(db, "friendRequests", request.id), {
+        status: "accepted",
       });
-    });
+    } catch (err) {
+      console.error("Confirm friend request error:", err);
+      alert("Could not confirm request.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
-    acceptedReceived.forEach((request) => {
-      map.set(request.fromUid, {
-        uid: request.fromUid,
-        name: request.fromName || "User",
-        photoURL: request.fromPhoto || null,
-        requestId: request.id,
-      });
-    });
+  const handleDelete = async (request: FriendRequest) => {
+    setActionLoading(request.id);
 
-    return Array.from(map.values()).sort((a, b) =>
-      a.name.localeCompare(b.name),
-    );
-  }, [acceptedSent, acceptedReceived]);
+    try {
+      await deleteDoc(doc(db, "friendRequests", request.id));
+    } catch (err) {
+      console.error("Delete friend request error:", err);
+      alert("Could not delete request.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#18191a]">
@@ -313,18 +319,24 @@ export default function FriendsAll() {
           <div>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-[24px] font-bold text-[#050505] dark:text-[#e4e6eb]">
-                All friends
+                Friend requests
               </h2>
             </div>
 
-            {allFriends.length === 0 ? (
+            {incomingRequests.length === 0 ? (
               <div className="bg-white dark:bg-[#242526] rounded-lg border border-[#ced0d4] dark:border-[#3a3b3c] p-6 text-[#65676b] dark:text-[#b0b3b8] text-[16px]">
-                No friends yet. Confirm friend requests to add friends here.
+                No friend requests.
               </div>
             ) : (
               <div className="grid grid-cols-4 gap-3 2xl:grid-cols-3 xl:grid-cols-2 sm:grid-cols-1">
-                {allFriends.map((friend) => (
-                  <FriendListItem key={friend.uid} friend={friend} />
+                {incomingRequests.map((request) => (
+                  <RequestCard
+                    key={request.id}
+                    request={request}
+                    onConfirm={handleConfirm}
+                    onDelete={handleDelete}
+                    loading={actionLoading === request.id}
+                  />
                 ))}
               </div>
             )}

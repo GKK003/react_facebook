@@ -18,6 +18,7 @@ import {
 
 import { auth, db } from "@/firebase/firebase";
 import FbLogo from "@/assets/images/fblogo.png";
+import ProfilePicture from "@/app/components/__atoms/ProfilePicture";
 
 interface NavbarProps {
   user: {
@@ -658,20 +659,11 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                 }}
                 className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 hover:opacity-90 mt-[5px] cursor-pointer"
               >
-                {user.photoURL ? (
-                  <Image
-                    src={user.photoURL}
-                    alt="profile"
-                    width={40}
-                    height={40}
-                    className="w-full h-full object-cover"
-                    unoptimized
-                  />
-                ) : (
-                  <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                    {user.displayName?.[0]?.toUpperCase() || "U"}
-                  </div>
-                )}
+                <ProfilePicture
+                  src={user.photoURL}
+                  name={user.displayName}
+                  size={40}
+                />
               </button>
 
               {showProfileMenu && (
@@ -684,22 +676,12 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                     onClick={() => setShowProfileMenu(false)}
                     className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c]"
                   >
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c]">
-                      {user.photoURL ? (
-                        <Image
-                          src={user.photoURL}
-                          alt="profile"
-                          width={40}
-                          height={40}
-                          className="w-full h-full object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                          {user.displayName?.[0]?.toUpperCase() || "U"}
-                        </div>
-                      )}
-                    </div>
+                    <ProfilePicture
+                      src={user.photoURL}
+                      name={user.displayName}
+                      size={40}
+                      className="bg-gray-300 dark:bg-[#3a3b3c]"
+                    />
 
                     <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
                       {user.displayName || "User"}
@@ -754,22 +736,12 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                     onClick={() => setShowMenu(false)}
                     className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#f0f2f5]  dark:hover:bg-[#3a3b3c]"
                   >
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300">
-                      {user.photoURL ? (
-                        <Image
-                          src={user.photoURL}
-                          alt="profile"
-                          width={40}
-                          height={40}
-                          className="w-full h-full object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                          {user.displayName?.[0]?.toUpperCase() || "U"}
-                        </div>
-                      )}
-                    </div>
+                    <ProfilePicture
+                      src={user.photoURL}
+                      name={user.displayName}
+                      size={40}
+                      className="bg-gray-300"
+                    />
 
                     <span className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">
                       {user.displayName || "User"}
@@ -1305,22 +1277,14 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                     className="flex gap-3 p-2 rounded-lg hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c]"
                   >
                     <Link href={`/profile/${request.fromUid}`}>
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-300">
-                        {request.fromPhoto ? (
-                          <Image
-                            src={request.fromPhoto}
-                            alt={request.fromName}
-                            width={48}
-                            height={48}
-                            className="w-full h-full object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                            {request.fromName?.[0]?.toUpperCase() || "U"}
-                          </div>
-                        )}
-                      </div>
+                      <ProfilePicture
+                        uid={request.fromUid}
+                        src={request.fromPhoto}
+                        name={request.fromName}
+                        size={48}
+                        live
+                        className="bg-gray-300"
+                      />
                     </Link>
 
                     <div className="flex-1 min-w-0">
@@ -1411,22 +1375,17 @@ export default function Navbar({ user, activePage = "home" }: NavbarProps) {
                     onClick={closeSearchPopup}
                     className="flex items-center gap-3 px-3 py-2 hover:bg-[#f0f2f5] dark:hover:bg-[#3a3b3c] transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 flex-shrink-0">
-                      {u.photoURL ? (
-                        <Image
-                          src={u.photoURL}
-                          alt={u.firstName || "User"}
-                          width={40}
-                          height={40}
-                          className="w-full h-full object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                          {u.firstName?.[0]?.toUpperCase() || "U"}
-                        </div>
-                      )}
-                    </div>
+                    <ProfilePicture
+                      uid={u.uid}
+                      src={u.photoURL}
+                      name={
+                        `${u.firstName || ""} ${u.lastName || ""}`.trim() ||
+                        u.email
+                      }
+                      size={40}
+                      live
+                      className="bg-gray-300"
+                    />
 
                     <div>
                       <p className="text-[15px] font-semibold text-[#050505] dark:text-[#e4e6eb]">

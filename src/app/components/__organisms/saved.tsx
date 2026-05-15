@@ -17,6 +17,7 @@ import {
 import { auth, db } from "@/firebase/firebase";
 import Navbar from "@/app/components/__organisms/Navbar";
 import { Post } from "@/app/components/__molecules/PostCard";
+import ProfilePicture from "@/app/components/__atoms/ProfilePicture";
 
 type User = {
   uid: string;
@@ -240,22 +241,15 @@ export default function SavedPage() {
                           </div>
 
                           <div className="mt-2 flex items-center gap-2 text-[14px] text-[#65676b] dark:text-[#b0b3b8]">
-                            <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
-                              {post.authorPhoto ? (
-                                <Image
-                                  src={post.authorPhoto}
-                                  alt={post.authorName || "User"}
-                                  width={28}
-                                  height={28}
-                                  className="w-full h-full object-cover"
-                                  unoptimized
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-[#1877f2] text-white flex items-center justify-center text-[12px] font-bold">
-                                  {(post.authorName || "U")[0].toUpperCase()}
-                                </div>
-                              )}
-                            </div>
+                            <ProfilePicture
+                              uid={post.authorId}
+                              src={post.authorPhoto}
+                              name={post.authorName}
+                              size={28}
+                              live
+                              className="bg-gray-300 dark:bg-[#3a3b3c]"
+                              textClassName="text-[12px] font-bold"
+                            />
 
                             <span className="truncate">
                               Saved from{" "}

@@ -4,9 +4,9 @@ import { useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { loginSchema } from "@/schemas/loginSchema";
-import Image from "next/image";
 import NoProfile from "@/assets/images/noprofile.webp";
 import { useAuthStore } from "@/store/useAuthStore";
+import ProfilePicture from "@/app/components/__atoms/ProfilePicture";
 
 type PopupFormValues = {
   password: string;
@@ -59,16 +59,13 @@ export default function ProfilePopup({ onLogin }: Props) {
         </button>
 
         <div className="flex flex-col items-center">
-          <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-gray-300 mb-4">
-            <Image
-              src={selectedProfile.photoURL || NoProfile}
-              alt="profile"
-              width={100}
-              height={100}
-              className="w-full h-full object-cover"
-              unoptimized
-            />
-          </div>
+          <ProfilePicture
+            src={selectedProfile.photoURL || NoProfile}
+            name={selectedProfile.name}
+            size={100}
+            className="bg-gray-300 mb-4"
+            textClassName="text-[36px]"
+          />
 
           <h2 className="text-[22px] font-semibold mb-4">
             {selectedProfile.name}

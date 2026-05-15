@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import NoProfile from "@/assets/images/noprofile.webp";
 import { useAuthStore } from "@/store/useAuthStore";
+import ProfilePicture from "@/app/components/__atoms/ProfilePicture";
 
 export default function ProfileList() {
   const { profiles, setShowProfiles, setSelectedProfile, setPopup } =
@@ -26,13 +26,10 @@ export default function ProfileList() {
             }}
           >
             <div className="flex items-center gap-3">
-              <Image
+              <ProfilePicture
                 src={profile.photoURL || NoProfile}
-                alt={profile.name}
-                width={55}
-                height={55}
-                className="w-[55px] h-[55px] rounded-full object-cover"
-                unoptimized
+                name={profile.name}
+                size={55}
               />
               <span>{profile.name}</span>
             </div>

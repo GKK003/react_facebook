@@ -1,5 +1,7 @@
 "use client";
 
+import ProfilePicture from "@/app/components/__atoms/ProfilePicture";
+
 type User = {
   displayName: string | null;
   photoURL: string | null;
@@ -76,19 +78,14 @@ export default function CreatePostPopup({
 
         <div className="px-4 pt-3 pb-4">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 dark:bg-[#3a3b3c] flex-shrink-0">
-              {user?.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white font-semibold">
-                  {user?.displayName?.[0]?.toUpperCase() || "G"}
-                </div>
-              )}
-            </div>
+            <ProfilePicture
+              uid={user?.uid}
+              src={user?.photoURL}
+              name={user?.displayName}
+              size={40}
+              className="bg-gray-300 dark:bg-[#3a3b3c]"
+              textClassName="text-sm"
+            />
 
             <div>
               <p className="text-[15px] leading-[18px] font-semibold text-[#050505] dark:text-[#e4e6eb]">

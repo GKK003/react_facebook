@@ -24,6 +24,7 @@ import { auth, db } from "@/firebase/firebase";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import Navbar from "@/app/components/__organisms/Navbar";
 import PostCard, { Post } from "@/app/components/__molecules/PostCard";
+import ProfilePicture from "@/app/components/__atoms/ProfilePicture";
 import Link from "next/link";
 
 interface UserProfileData {
@@ -494,21 +495,15 @@ export default function UserProfile() {
           <div className="px-4 pb-4">
             <div className="flex items-end justify-between -mt-[52px] flex-wrap gap-4 gh:flex-col gh:items-start">
               <div className="relative">
-                <div className="w-[168px] h-[168px] rounded-full border-4 border-white dark:border-[#242526] overflow-hidden bg-[#c9cdd2] dark:bg-[#3a3b3c] relative">
-                  {profilePhoto ? (
-                    <Image
-                      src={profilePhoto}
-                      alt={fullName}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[64px] font-bold">
-                      {fullName[0]?.toUpperCase() || "U"}
-                    </div>
-                  )}
-                </div>
+                <ProfilePicture
+                  uid={uid}
+                  src={profilePhoto}
+                  name={fullName}
+                  size={168}
+                  live
+                  className="border-4 border-white dark:border-[#242526] bg-[#c9cdd2] dark:bg-[#3a3b3c]"
+                  textClassName="text-[64px] font-bold"
+                />
 
                 {isOwnProfile && (
                   <label className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#e4e6ea] dark:bg-[#3a3b3c] hover:bg-[#d8dadf] dark:hover:bg-[#4e4f50] flex items-center justify-center cursor-pointer border-2 border-white dark:border-[#242526]">
@@ -689,22 +684,16 @@ export default function UserProfile() {
                       href={`/profile/${friend.uid}`}
                       className="cursor-pointer"
                     >
-                      <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-300 dark:bg-[#3a3b3c]">
-                        {friend.photoURL ? (
-                          <Image
-                            src={friend.photoURL}
-                            alt={friend.name}
-                            width={110}
-                            height={110}
-                            className="w-full h-full object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-[#1877f2] flex items-center justify-center text-white text-[28px] font-bold">
-                            {friend.name[0]?.toUpperCase() || "U"}
-                          </div>
-                        )}
-                      </div>
+                      <ProfilePicture
+                        uid={friend.uid}
+                        src={friend.photoURL}
+                        name={friend.name}
+                        width="100%"
+                        height="auto"
+                        live
+                        className="aspect-square rounded-lg bg-gray-300 dark:bg-[#3a3b3c]"
+                        textClassName="text-[28px] font-bold"
+                      />
 
                       <p className="mt-1 text-[13px] font-semibold text-[#050505] dark:text-[#e4e6eb] truncate">
                         {friend.name}
